@@ -4,7 +4,9 @@ Scripts and data for USPTO patent portfolio research.
 
 ## Scripts
 
-These scripts pipeline together to produce a patent CSV for any company. Each step writes its output to a file that the next step reads.
+These scripts pipeline together to produce a patent CSV and narrative report for any company. Each step writes its output to a file that the next step reads.
+
+Intermediate files (`*.txt`, `*.json`) are gitignored — they're scratch files regenerated each run. Only the final outputs in `data/` are committed.
 
 ### Prerequisites
 
