@@ -176,5 +176,33 @@ If you re-run the workflow for the same company, all fetches repeat from scratch
 
 ### Longer-term
 - [ ] Portfolio comparison: run two companies side-by-side and identify overlapping areas (patent landscape analysis)
-- [ ] Citation analysis: for each patent, fetch forward citations to identify which inventions were most influential
 - [ ] Trend analysis: group patents by filing year and category to visualize how a company's research focus shifted over time
+
+### Patent value / importance scoring (future enhancement)
+
+A composite value score per patent would let the report highlight the most important patents rather than treating all retained patents equally. Several signals are available; none is definitive on its own.
+
+**Independent claim breadth** — the strongest signal and fully parseable from claim text on Google Patents. Two sub-metrics:
+- *Word count per independent claim*: shorter = broader = harder to design around. A 12-word independent claim is more valuable than a 150-word one, all else equal.
+- *Number of independent claims*: more independent claims means more angles of coverage, each requiring its own design-around. Many short independent claims is the strongest pattern.
+- A long claim with many "wherein" clauses signals that the examiner repeatedly rejected broader versions — a proxy for a crowded prior art space.
+
+**International filing depth** — expensive filing decisions are a revealed-preference signal of value. Tiers:
+- US-only: baseline
+- PCT filed: speculative signal; many PCT applications are abandoned in national phase
+- Granted national phase entries (EPO, JPO, China, Korea, etc.): strong signal — each costs $5–20k+ in attorney fees; companies only do this for strategically important patents
+- International family size is shown directly on Google Patents pages — no additional API needed.
+
+**Maintenance fee status** — whether the patent is still in force. In the US, maintenance fees are due at 3.5, 7.5, and 11.5 years. Early lapse is a clear revealed-preference signal of low value; paying through expiry signals ongoing commercial relevance.
+
+**Litigation and IPR history** — adversarial signals:
+- Patent asserted in litigation: owner valued it enough to stake legal costs
+- Survived IPR (inter partes review): an adversary paid ~$30k to kill it and failed — strong quality signal
+- These are sparse (most patents are never litigated) but high-confidence when present
+
+**Forward citations — use with caution** — the academic citation analogy is weaker here due to conflicting incentives. Companies are advised by counsel not to do extensive prior art searches (to avoid willful infringement exposure and treble damages), so citation counts are systematically suppressed in ways unrelated to patent importance. *Examiner-added* forward citations (where the USPTO examiner cited the patent during prosecution of a later application) are a somewhat cleaner signal than total forward citations, since examiners aren't subject to the same incentive distortion.
+
+**Implementation notes:**
+- Claim text and international family data: both available from Google Patents pages — could be added to `fetch_abstracts.py` or a new `fetch_claims.py` script
+- Maintenance status: available from USPTO ODP API (`applicationStatusDescriptionText`)
+- Litigation/IPR history: requires a separate data source (Derwent, Lex Machina, or web search per patent)
