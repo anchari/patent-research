@@ -1,9 +1,13 @@
 """
-Fetch all patent applications for a company from the USPTO Open Data Portal API.
+Fetch patent applications for a company from the USPTO Open Data Portal API.
 
 Usage:
     python3 fetch_patents.py "Tropos Networks" YOUR_API_KEY
+    python3 fetch_patents.py "Apple Inc" YOUR_API_KEY --keywords "noise cancellation" "audio processing"
     python3 fetch_patents.py "Tropos Networks" YOUR_API_KEY --output app_numbers.txt
+
+Hard cap: retrieves at most 500 results. If the query matches more, the script exits
+with an error and instructions to narrow the search using --keywords.
 
 Returns a list of application numbers (one per line) to stdout or a file.
 """
@@ -15,25 +19,36 @@ import urllib.parse
 import urllib.error
 import argparse
 
+MAX_RESULTS = 500
 
-def fetch_applications(assignee_name: str, api_key: str) -> list[dict]:
+
+def build_query(assignee_name: str, keywords: list[str]) -> str:
+    assignee_clause = f'assignmentBag.assigneeBag.assigneeNameText:"{assignee_name}"'
+    if not keywords:
+        return assignee_clause
+    title_clauses = " OR ".join(
+        f"applicationMetaData.inventionTitle:{kw}*" for kw in keywords
+    )
+    return f"{assignee_clause} AND ({title_clauses})"
+
+
+def fetch_applications(assignee_name: str, api_key: str, keywords: list[str]) -> list[dict]:
     """
-    Fetch all applications where the given name appears as an assignee.
-    Uses assignmentBag.assigneeBag.assigneeNameText which covers original filers
-    and patents reassigned after filing.
+    Fetch applications where the given name appears as an assignee, optionally filtered
+    by invention title keywords. Uses assignmentBag query for maximum coverage (includes
+    patents reassigned after filing).
+
+    Raises SystemExit if total results exceed MAX_RESULTS.
     """
     base_url = "https://api.uspto.gov/api/v1/patent/applications/search"
     headers = {"X-Api-Key": api_key}
+    query = build_query(assignee_name, keywords)
     limit = 100
     offset = 0
     all_items = []
 
     while True:
-        params = urllib.parse.urlencode({
-            "q": f'assignmentBag.assigneeBag.assigneeNameText:"{assignee_name}"',
-            "limit": limit,
-            "offset": offset,
-        })
+        params = urllib.parse.urlencode({"q": query, "limit": limit, "offset": offset})
         url = f"{base_url}?{params}"
         req = urllib.request.Request(url, headers=headers)
 
@@ -46,6 +61,17 @@ def fetch_applications(assignee_name: str, api_key: str) -> list[dict]:
             raise
 
         total = data.get("count", 0)
+
+        if total > MAX_RESULTS:
+            kw_hint = (
+                f" Try narrowing with --keywords, e.g.:\n"
+                f"  --keywords \"[subject area]\" \"[synonym]\""
+            )
+            sys.exit(
+                f"Error: query matches {total} results, which exceeds the {MAX_RESULTS}-patent "
+                f"limit. Fetching aborted to avoid excessive API usage.{kw_hint}"
+            )
+
         items = data.get("patentFileWrapperDataBag", [])
         all_items.extend(items)
 
@@ -59,15 +85,28 @@ def fetch_applications(assignee_name: str, api_key: str) -> list[dict]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fetch USPTO patent applications by assignee name")
-    parser.add_argument("assignee", help='Assignee name to search (e.g. "Tropos Networks, Inc.")')
+    parser = argparse.ArgumentParser(
+        description="Fetch USPTO patent applications by assignee name",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("assignee", help='Assignee name (e.g. "Apple Inc")')
     parser.add_argument("api_key", help="USPTO ODP API key")
+    parser.add_argument(
+        "--keywords",
+        nargs="+",
+        metavar="TERM",
+        help="Filter by invention title keywords (required for large filers)",
+    )
     parser.add_argument("--output", help="Write application numbers to this file (default: stdout)")
     args = parser.parse_args()
 
-    print(f"Searching for applications assigned to: {args.assignee}", file=sys.stderr)
-    items = fetch_applications(args.assignee, args.api_key)
+    keywords = args.keywords or []
+    if keywords:
+        print(f"Searching: assignee={args.assignee!r}, title keywords={keywords}", file=sys.stderr)
+    else:
+        print(f"Searching for all applications assigned to: {args.assignee!r}", file=sys.stderr)
 
+    items = fetch_applications(args.assignee, args.api_key, keywords)
     app_numbers = [item["applicationNumberText"] for item in items if item.get("applicationNumberText")]
 
     lines = "\n".join(app_numbers)

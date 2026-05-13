@@ -18,7 +18,13 @@ fetch_patents.py  →  fetch_metadata.py  →  fetch_abstracts.py  →  (Claude 
 
 **Step 1 — Get all application numbers for a company:**
 ```bash
+# Small filer — fetch everything
 python3 fetch_patents.py "Tropos Networks" $USPTO_API_KEY --output tropos_app_numbers.txt
+
+# Large filer — narrow by subject area first (otherwise tens of thousands of results)
+python3 fetch_patents.py "Apple Inc" $USPTO_API_KEY \
+  --keywords "noise cancellation" "audio processing" "microphone" \
+  --output apple_audio_app_numbers.txt
 ```
 
 **Step 2 — Fetch structured metadata for each application:**
@@ -38,7 +44,7 @@ Hand `tropos_metadata.json` and `tropos_abstracts.json` to Claude and ask it to 
 
 | Script | Input | Output | Notes |
 |---|---|---|---|
-| `fetch_patents.py` | Assignee name, API key | App numbers (text) | Uses `assignmentBag` query — finds original filings and reassigned patents |
+| `fetch_patents.py` | Assignee name, API key | App numbers (text) | Uses `assignmentBag` query — finds original filings and reassigned patents. Hard cap of 500 results — exits with an error if exceeded. Use `--keywords` to filter by invention title for large filers. |
 | `fetch_metadata.py` | App numbers file, API key | JSON with title, inventors, grant date, status, patent number | Calls `/meta-data` endpoint per application |
 | `fetch_abstracts.py` | Metadata JSON | JSON mapping patent number → abstract text | Fetches Google Patents pages; respects rate limits via configurable delay |
 
