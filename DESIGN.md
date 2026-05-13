@@ -34,7 +34,7 @@ The workflow is multi-step and interactive. Two confirmation checkpoints happen 
 4. Metadata fetch (fetch_metadata.py)
    Per-application: title, inventors, patent number, grant date, status.
    Filter: keep issued patents (and optionally published applications).
-   Filter: discard off-topic patents (title doesn't match any search term).
+   Filter: discard off-topic patents based on abstract (not title).
         │
         ▼
 5. Abstract fetch (fetch_abstracts.py)
@@ -54,8 +54,13 @@ The workflow is multi-step and interactive. Two confirmation checkpoints happen 
    Write [company-slug]-[subject-slug]-patents.csv to the current directory.
         │
         ▼
-9. Report
-   Summary: file name, patent count, category breakdown, observations.
+9. Narrative report (Claude)
+   Write [company-slug]-[subject-slug]-report.md to the current directory.
+   Sections: innovation areas, gaps/partner reliance, key inventor profiles.
+        │
+        ▼
+10. Report to user
+    Filenames, patent count, category breakdown, headline finding.
 ```
 
 ---
@@ -169,8 +174,6 @@ If you re-run the workflow for the same company, all fetches repeat from scratch
 - [ ] International coverage: extend to EPO (via [ops.epo.org](https://ops.epo.org)) and WIPO (via [patentscope.wipo.int](https://patentscope.wipo.int)) for non-US filings
 
 ### Longer-term
-- [ ] **Inventor analysis**: for each inventor in the portfolio, compute a patent count per category and identify their primary focus area(s). Surface the top inventors overall and the leading inventor per category. Useful for understanding who the key technical contributors are and what they specialize in — relevant for due diligence, competitive intelligence, and identifying potential expert witnesses or hires.
-  - *Profile enrichment:* LinkedIn has no usable public API. Primary fallback is web search (`"[inventor name]" [company] site:linkedin.com`) to pull publicly indexed profile data — current employer, title, career trajectory. If a people-data API key is available (Clearbit, Apollo, PeopleDataLabs), that should be used instead for structured and bulk lookups.
 - [ ] Portfolio comparison: run two companies side-by-side and identify overlapping areas (patent landscape analysis)
 - [ ] Citation analysis: for each patent, fetch forward citations to identify which inventions were most influential
 - [ ] Trend analysis: group patents by filing year and category to visualize how a company's research focus shifted over time

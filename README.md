@@ -31,8 +31,8 @@ python3 fetch_metadata.py tropos_app_numbers.txt $USPTO_API_KEY --output tropos_
 python3 fetch_abstracts.py tropos_metadata.json --output tropos_abstracts.json
 ```
 
-**Step 4 — Summarize and export to CSV:**
-Hand `tropos_metadata.json` and `tropos_abstracts.json` to Claude and ask it to write summaries, assign categories, and produce the final CSV.
+**Step 4 — Summarize, categorize, and export:**
+Hand `tropos_metadata.json` and `tropos_abstracts.json` to Claude and ask it to write summaries, assign categories, produce the final CSV, and write the narrative report.
 
 ### Script details
 
@@ -44,8 +44,12 @@ Hand `tropos_metadata.json` and `tropos_abstracts.json` to Claude and ask it to 
 
 ## Data files
 
-Output CSVs are stored in `data/`. Each file is named `[company-slug]-[subject-slug]-patents.csv`.
+Output files are stored in `data/`. Each run produces two files with the same base name:
+- `[company-slug]-[subject-slug]-patents.csv` — structured data (number, title, category, summary, inventors, year, status)
+- `[company-slug]-[subject-slug]-report.md` — narrative analysis (innovation areas, partner-reliance gaps, key inventor profiles)
 
 | File | Description |
 |---|---|
 | `data/tropos-networks-inc-wireless-patents.csv` | 62 issued patents assigned to Tropos Networks, Inc. (wireless networking, 2005–2017) |
+| `data/waymo-llc-wireless-communications-patents.csv` | 17 patents assigned to Waymo LLC (wireless communications, 2017–2025) |
+| `data/waymo-llc-wireless-communications-report.md` | Narrative analysis of Waymo's wireless communications portfolio |
