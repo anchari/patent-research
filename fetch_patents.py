@@ -12,6 +12,7 @@ import sys
 import json
 import urllib.request
 import urllib.parse
+import urllib.error
 import argparse
 
 
@@ -36,8 +37,13 @@ def fetch_applications(assignee_name: str, api_key: str) -> list[dict]:
         url = f"{base_url}?{params}"
         req = urllib.request.Request(url, headers=headers)
 
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                break  # zero results — not an error
+            raise
 
         total = data.get("count", 0)
         items = data.get("patentFileWrapperDataBag", [])

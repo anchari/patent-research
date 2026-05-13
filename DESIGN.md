@@ -126,6 +126,18 @@ Patent abstracts are written in legal language that is deliberately opaque. Rule
 
 ## Known limitations
 
+### HTTP 404 from the ODP API means zero results, not an error
+The USPTO ODP API returns HTTP 404 (not HTTP 200 with an empty array) when a search query matches no records. This is intentional API behavior, not a server error. Any code that calls the ODP API must catch `HTTPError` with code 404 and treat it as an empty result set. Unhandled, it will surface as a script failure and silently drop valid search terms from the results.
+
+### Title-keyword searches produce systematic false positives
+Filtering by invention title (rather than full-text abstract search) causes several categories of false positives:
+
+- **Sensor hardware vs. communications** — Terms like "antenna", "radio", "transceiver", and "wireless" appear in both wireless communications patents and in sensing/radar patents that use RF for detection rather than communication. For a wireless communications search, a patent describing a phased-array radar return is a false positive; the title gives no reliable signal.
+- **Polysemous keywords** — "Mesh" matches both network topology patents and structural/material patents (e.g., "Waterproofing 3D Printed Meshes"). "Antenna" matches communication antennas and physical mounting structures. Abstract review is required to resolve the ambiguity.
+- **Same legal name, different company** — Corporate name coincidences can cause the `assignmentBag` query to return patents from an unrelated entity that happened to use the same legal name before the target company was founded. These patents typically describe a completely different industry and are caught only by abstract review.
+
+The correct mitigation for all three is the manual relevance filter in Step 4 — reading title + abstract before retaining. There is no automated fix as long as the ODP API does not expose abstract text as a searchable field.
+
 ### Abstract fetching is fragile
 Google Patents HTML structure changes without notice. The regex patterns in `fetch_abstracts.py` have multiple fallbacks, but the script will eventually need maintenance when Google updates its page structure. A more robust approach would use the Google Patents API if one becomes publicly available.
 
