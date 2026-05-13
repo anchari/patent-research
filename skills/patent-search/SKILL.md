@@ -253,11 +253,38 @@ For each inventor who appears on 2 or more patents in the portfolio:
 - Explain what their cross-category presence (or lack of it) implies about their role — broad systems architect, narrow specialist, team lead on a single problem, etc.
 - Note any temporal patterns: are they active on the oldest patents (foundational work), the newest (current frontier), or both?
 
-If you have any reliable background knowledge about the inventor's career history (e.g., they were a founding team member, joined from a known institution, or have a public profile consistent with their patent focus), include a one-sentence note. Mark speculative inferences clearly.
+**LinkedIn profile lookup:** Before writing each inventor's entry, run a web search for their LinkedIn profile:
+
+```
+"[Inventor Full Name]" "[Company Name]" linkedin
+```
+
+If a LinkedIn URL is found, include it as a link in the inventor's subheading, e.g.:
+
+```
+### Pierre-Yves Droz — Sensor architecture and V2P ([LinkedIn](https://linkedin.com/in/...))
+```
+
+If the profile page is accessible, extract their current title, employer, and any career history relevant to their patent focus (e.g., prior employers, academic background). Incorporate this into the narrative — 1–2 sentences on their background and how it connects to their patent work.
+
+If no LinkedIn profile is found, note it briefly ("No LinkedIn profile found") rather than omitting the search attempt entirely. Do not fabricate profile details.
 
 **Closing summary paragraph**
 
 2–4 sentences characterizing the portfolio as a whole: what does it reveal about the company's theory of where their engineering creates proprietary value, versus what they buy from the ecosystem?
+
+**Appendix — Patent Reference**
+
+After the summary, append a full patent listing grouped by category (same categories from Step 6), sorted chronologically within each group. For each patent:
+
+```
+[Patent number as a link to patents.google.com/patent/[number]/en] — [Title]
+[Status] [Year] · [Inventors, comma-separated]
+
+[Summary paragraph from Step 5]
+```
+
+This gives the reader a scannable reference for every patent in the portfolio without leaving the document.
 
 **Output format**
 

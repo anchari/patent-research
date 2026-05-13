@@ -14,6 +14,10 @@
     a { color: #1a56db; }
     hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
     em { color: #444; }
+    .patent { border: 1px solid #e0e0e0; border-radius: 4px; padding: 1em 1.2em; margin: 1.2em 0; background: #fafafa; }
+    .patent-title { font-size: 1em; font-weight: bold; margin: 0 0 0.2em 0; }
+    .patent-meta { font-size: 0.88em; color: #555; margin: 0 0 0.7em 0; font-family: sans-serif; }
+    .patent p { margin: 0; font-size: 0.95em; }
   </style>
 </head>
 <body>
@@ -108,6 +112,124 @@
 <h2>Summary</h2>
 
 <p>Waymo's wireless communications patent portfolio is narrow but deep. Rather than staking out broad platform positions in cellular, V2X, or general wireless networking, they have concentrated their inventive effort on two problems that are genuinely specific to their sensor and operations architecture: making the spinning lidar platform communicate reliably without physical contacts, and offloading the fleet's massive data volumes efficiently. The V2P radio detection work is the one area where they are developing genuinely new capabilities at the intersection of wireless and autonomy. Everything else — cellular, GPS, V2X, WiFi — they buy from the ecosystem. This is a disciplined portfolio that reflects a company with a clear theory of where their engineering differentiates them.</p>
+
+<hr>
+
+<h2>Appendix — Patent Reference</h2>
+
+<h3>Rotary Joint Communication</h3>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US9628170B2/en">US9628170B2</a> — Devices and Methods for a Rotary Joint with Multiple Wireless Links</p>
+  <p class="patent-meta">Issued 2017 · Daniel L. Rosenband, Pierre-Yves Droz, Min Wang, Etai Bruhis, Adam Brown, Samuel Lenius</p>
+  <p>Spinning sensor platforms (like lidar) on autonomous vehicles need continuous data links between the rotating and stationary parts of the vehicle, but physical cables would bind and wear. This invention establishes multiple simultaneous wireless links across the rotary joint gap, enabling bidirectional sensor data flow without slip rings. The multi-link design provides redundancy and higher aggregate bandwidth than a single wireless channel.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US10033456B2/en">US10033456B2</a> — Devices and Methods for a Rotary Joint with Multiple Wireless Links</p>
+  <p class="patent-meta">Issued 2018 · Daniel L. Rosenband, Pierre-Yves Droz, Min Wang, Etai Bruhis, Adam Brown, Samuel Lenius</p>
+  <p>Autonomous vehicle sensor platforms that rotate continuously require robust wireless data links across the rotation gap that can sustain data transfer through full 360-degree rotation. This continuation covers additional configurations of the multi-link rotary joint, including arrangements that maintain link quality as the relative angle between the two platforms changes. It ensures reliable communication between the spinning sensor head and the vehicle's processing systems under all operating conditions.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US10742315B2/en">US10742315B2</a> — Automotive Communication System with Dielectric Waveguide Cable and Wireless Contactless Rotary Joint</p>
+  <p class="patent-meta">Issued 2020 · Zhe Li, Min Wang, Michael Sleator</p>
+  <p>Spinning lidar platforms require both high-bandwidth data transfer and mechanical freedom to rotate continuously, but conventional wired connections can't span a rotating joint without wearing out. This invention combines a dielectric waveguide cable for high-speed signal propagation up to the joint with a wireless contactless rotary joint to cross the rotation gap, achieving both the bandwidth of a wired link and the durability of a non-contact interface.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US10862579B2/en">US10862579B2</a> — Devices and Methods for a Rotary Joint with Multiple Wireless Links</p>
+  <p class="patent-meta">Issued 2020 · Daniel L. Rosenband, Pierre-Yves Droz, Min Wang, Etai Bruhis, Adam Brown, Samuel Lenius</p>
+  <p>As autonomous vehicle lidar platforms grow in resolution and data rate, the wireless links across the rotary joint must scale accordingly. This continuation covers signal management and channel allocation across multiple simultaneous wireless links in the rotary joint, enabling the aggregate bandwidth to grow by adding parallel channels rather than requiring new hardware generations.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US10965367B2/en">US10965367B2</a> — Automotive Communication System with Dielectric Waveguide Cable and Wireless Contactless Rotary Joint</p>
+  <p class="patent-meta">Issued 2021 · Zhe Li, Min Wang, Michael Sleator</p>
+  <p>Reliable high-speed communication between the spinning sensor head and the vehicle body requires a rotary joint that handles both the physical rotation and the signal integrity demands of high-frequency data. This continuation extends the dielectric waveguide plus wireless rotary joint architecture to cover additional signal routing configurations and frequency bands, enabling the system to carry multiple independent data streams simultaneously through the same rotary joint.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US11804896B2/en">US11804896B2</a> — Automotive Communication System with Dielectric Waveguide Cable and Wireless Contactless Rotary Joint</p>
+  <p class="patent-meta">Issued 2023 · Zhe Li, Min Wang, Michael Sleator</p>
+  <p>As lidar sensors increase in channel count and resolution, the data throughput demands on the rotary joint grow substantially. This continuation covers the integration of the wireless joint with the vehicle's broader sensor data bus, including synchronization and arbitration of data streams from multiple sensors passing through the same rotary joint infrastructure.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US11841465B2/en">US11841465B2</a> — Wireless Power Transfer Via Rotary Link</p>
+  <p class="patent-meta">Issued 2023 · Joshua Jones, Gregory Hall, Alexander Zbrozek</p>
+  <p>The spinning lidar platform on an autonomous vehicle requires continuous electrical power, but wired connections through a rotating joint introduce wear and limit rotation speed. This invention delivers power wirelessly across the rotation gap using resonant inductive coupling through a transformer split across the two rotating platforms, regulated by an LLC resonant converter for high efficiency. Eliminating the electrical contacts removes a significant mechanical wear point from the lidar assembly.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US12228683B2/en">US12228683B2</a> — Wireless Power Transfer Via Rotary Link</p>
+  <p class="patent-meta">Issued 2025 · Joshua Jones, Gregory Hall, Alexander Zbrozek</p>
+  <p>Sustaining reliable wireless power delivery across a rotary joint under varying load conditions requires active control of the resonant converter to maintain efficiency as the lidar platform draws variable current. This continuation covers the dynamic power regulation aspects of the resonant inductive rotary power transfer system, including how the converter adapts its switching frequency to maintain high efficiency under changing load and alignment conditions.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US12416719B2/en">US12416719B2</a> — Waveguide Apparatus with High Speed Dual Channel Wireless Contactless Rotary Joint</p>
+  <p class="patent-meta">Issued 2025 · Zhe Li, Jamal Izadian, Pierre-Yves Droz, Min Wang, Samuel Lenius, Paul Karplus</p>
+  <p>Next-generation lidar sensors generate data volumes that exceed what single-channel wireless rotary joints can carry, requiring a new architecture to scale throughput without increasing the joint's physical size. This invention uses two parallel wireless channels through a bearing waveguide rotary joint, effectively doubling the available bandwidth across the rotation gap in the same physical footprint.</p>
+</div>
+
+<h3>Vehicle-to-Pedestrian (V2P) Communication</h3>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US10377374B2/en">US10377374B2</a> — Detection of Pedestrian Using Radio Devices</p>
+  <p class="patent-meta">Issued 2019 · Pierre-Yves Droz</p>
+  <p>Autonomous vehicles must reliably detect pedestrians even when they are occluded or in poor lighting conditions where cameras and lidar may struggle. This invention has the vehicle broadcast radio signals (Bluetooth, 802.11, or cellular) to solicit responses from radio-equipped devices carried by nearby people — such as smartphones — using signal response timing and strength to detect and locate pedestrians. The approach complements optical sensors by detecting pedestrians through obstructions and in zero-visibility conditions.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US10967856B2/en">US10967856B2</a> — Detection of Pedestrian Using Radio Devices</p>
+  <p class="patent-meta">Issued 2021 · Pierre-Yves Droz</p>
+  <p>Detecting pedestrians who carry radio-enabled devices (smartphones, wearables) provides a detection channel that is complementary to lidar and cameras — it works through walls, in darkness, and at range. This continuation covers additional radio protocols and signal processing approaches for the pedestrian detection system, including how the vehicle handles multiple simultaneous radio responses from a crowd to isolate individual pedestrians and estimate their positions.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US12122364B2/en">US12122364B2</a> — Detection of Pedestrian Using Radio Devices</p>
+  <p class="patent-meta">Issued 2024 · Pierre-Yves Droz</p>
+  <p>Radio-based pedestrian detection fills coverage gaps left by lidar and cameras — particularly at intersections, around corners, and in poor weather. This continuation covers the vehicle-side signal processing pipeline for parsing and localizing radio responses from pedestrian devices under real-world conditions including multipath propagation, varying device types, and dense crowds where many devices respond simultaneously.</p>
+</div>
+
+<h3>Charging Station Communication</h3>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US20260070457A1/en">US20260070457A1</a> — Antenna on Charger Infrastructure</p>
+  <p class="patent-meta">Published Application 2025 · Dieter Statezni, Sangram Patil</p>
+  <p>Autonomous vehicles accumulate terabytes of sensor data per day that must be offloaded for processing and model training, and scheduled charging sessions are the natural opportunity for bulk data transfer. This invention positions a high-throughput wireless antenna on the charging infrastructure adjacent to the vehicle's charging port, enabling simultaneous charging and high-speed sensor data offload through a predictable, close-range wireless link.</p>
+</div>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US12403790B2/en">US12403790B2</a> — Antenna on Charger Infrastructure</p>
+  <p class="patent-meta">Issued 2025 · Dieter Statezni, Sangram Patil</p>
+  <p>Offloading large sensor datasets from autonomous vehicles requires high-throughput wireless infrastructure at predictable locations where vehicles dwell for extended periods. This continuation covers the antenna design and signal management on the charger infrastructure side — including how the system handles multiple vehicles charging simultaneously, manages interference between adjacent charging bays, and authenticates vehicles before initiating the data transfer session.</p>
+</div>
+
+<h3>RF Spectrum Management</h3>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US20250166506A1/en">US20250166506A1</a> — Universal Spectrum Utilization Exchange for Radio Frequency Interference Mitigation and Avoidance</p>
+  <p class="patent-meta">Published Application 2023 · Michael Dane Fina, Filip Perich, Kenneth T. Ho</p>
+  <p>Autonomous vehicles and roadside infrastructure operating in dense urban environments cause and experience radio frequency interference from each other, but each device currently reacts to interference in isolation without sharing what it has observed. This invention creates a shared spectrum utilization exchange where vehicles and infrastructure report observed RFI parameters and locations to a central aggregator, which distributes interference maps back to all participants. The collective awareness lets the entire fleet proactively avoid known interference sources rather than each vehicle independently discovering and reacting to interference.</p>
+</div>
+
+<h3>Vehicle Cellular Connectivity</h3>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US9666937B2/en">US9666937B2</a> — LTE MIMO Antenna System for Automotive Carbon Fiber Rooftops</p>
+  <p class="patent-meta">Issued 2017 · Vijay Asrani, Felix Jose Alvarez Rivera, Douglas Blake Kough</p>
+  <p>Carbon fiber roofs used on autonomous vehicles for weight reduction are non-conductive and don't serve as a ground plane for antennas the way metal roofs do, degrading cellular performance. This invention designs an LTE MIMO antenna system for carbon fiber rooftops that uses the vehicle's metallic structural roof supports as antenna coupling elements rather than relying on a continuous ground plane.</p>
+</div>
+
+<h3>Asset &amp; Fleet Tracking</h3>
+
+<div class="patent">
+  <p class="patent-title"><a href="https://patents.google.com/patent/US20230394257A1/en">US20230394257A1</a> — Wireless Anchors for Asset Tracking</p>
+  <p class="patent-meta">Published Application 2022 · David Andre, Erich Karl Nachbar</p>
+  <p>Tracking the physical location of vehicles and equipment in large garages and depots is difficult because GPS doesn't work indoors. This invention deploys fixed wireless anchor beacons at known locations that broadcast identification signals; reader devices measure received signal strength from multiple anchors and compute their position from the combined RSSI pattern. The approach enables fleet operators to track vehicles and equipment throughout large facilities without GPS or optical systems.</p>
+</div>
 
 </body>
 </html>
