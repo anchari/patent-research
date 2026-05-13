@@ -55,8 +55,9 @@ The workflow is multi-step and interactive. Two confirmation checkpoints happen 
         │
         ▼
 9. Narrative report (Claude)
-   Write [company-slug]-[subject-slug]-report.md to the current directory.
+   Write [company-slug]-[subject-slug]-report.md and .html to the current directory.
    Sections: innovation areas, gaps/partner reliance, key inventor profiles.
+   HTML is self-contained (inline styles, no external dependencies).
         │
         ▼
 10. Report to user

@@ -121,9 +121,10 @@ Uses a 0.8s delay between requests to avoid rate limiting. Tries both `B2` and `
 
 ## Data files
 
-Output files are stored in `data/`. Each run produces two files with the same base name:
+Output files are stored in `data/`. Each run produces three files with the same base name:
 - `[company-slug]-[subject-slug]-patents.csv` — structured data (number, title, category, summary, inventors, year, status)
 - `[company-slug]-[subject-slug]-report.md` — narrative analysis (innovation areas, partner-reliance gaps, key inventor profiles)
+- `[company-slug]-[subject-slug]-report.html` — same report as a self-contained HTML file
 
 | File | Description |
 |---|---|

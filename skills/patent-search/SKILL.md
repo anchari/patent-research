@@ -259,11 +259,44 @@ If you have any reliable background knowledge about the inventor's career histor
 
 2–4 sentences characterizing the portfolio as a whole: what does it reveal about the company's theory of where their engineering creates proprietary value, versus what they buy from the ecosystem?
 
+**Output format**
+
+Write the report twice — once as Markdown, once as a self-contained HTML file — both to the current working directory:
+- `[company-slug]-[subject-slug]-report.md`
+- `[company-slug]-[subject-slug]-report.html`
+
+The HTML file must be fully self-contained (no external stylesheets or scripts). Use a minimal inline `<style>` block for readability. Suggested styles:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[Company] — [Subject Area] Patent Portfolio</title>
+  <style>
+    body { max-width: 860px; margin: 40px auto; padding: 0 24px; font-family: Georgia, serif; font-size: 17px; line-height: 1.7; color: #1a1a1a; }
+    h1 { font-size: 1.6em; border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+    h2 { font-size: 1.3em; margin-top: 2em; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }
+    h3 { font-size: 1.05em; margin-top: 1.5em; color: #333; }
+    blockquote { margin: 0; padding: 0.2em 1em; border-left: 3px solid #ccc; color: #555; font-style: italic; }
+    strong { color: #000; }
+    a { color: #1a56db; }
+  </style>
+</head>
+<body>
+  <!-- report content here -->
+</body>
+</html>
+```
+
+Render all Markdown formatting as equivalent HTML elements (`#` → `<h1>`, `**text**` → `<strong>`, `> text` → `<blockquote>`, etc.).
+
 ---
 
 ## Step 9 — Report to user
 
-After writing the CSV and report, tell the user:
-1. Both filenames and the total number of patents included
+After writing the CSV and both report files, tell the user:
+1. All three filenames and the total number of patents included
 2. A list of the categories from the CSV, each with a count of patents assigned to it
 3. 1–2 sentences pointing to the most notable finding in the narrative report
