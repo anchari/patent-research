@@ -56,28 +56,40 @@ No positioning or GPS patents in this set. Waymo relies on Trimble, u-blox, and 
 
 ## 3. Key inventors and their areas of specialization
 
-### Pierre-Yves Droz — Sensor architecture and V2P
+### Pierre-Yves Droz — Sensor architecture and V2P ([LinkedIn](https://www.linkedin.com/in/pierre-yves-droz-5b06062/))
 Droz appears on 4 patents across two distinct areas: the original multi-link wireless rotary joint family (as a co-inventor with Rosenband et al.) and all three V2P pedestrian radio detection patents (as sole inventor). His presence on both the foundational sensor platform work and the V2P line, combined with his sole-inventor status on the V2P patents, marks him as one of the broadest technical contributors in this portfolio. He is also a listed inventor on the latest dual-channel rotary joint patent (US12416719, 2025), suggesting he remains active at the frontier of the sensor communication problem.
 
-*Background note: Droz was one of the earliest engineers on the Google Self-Driving Car project before it became Waymo, which explains the breadth and seniority of his patent footprint.*
+*Droz co-founded 510 Systems, a robotics and computer vision company that Google acquired in 2011 as part of the early self-driving car effort — making him one of the longest-tenured people in the autonomous vehicle space.*
 
 ### Min Wang — Rotary joint communication architecture
 Wang appears on 5 patents spanning both the original wireless link family (2017–2020) and the newer dielectric waveguide hybrid family (2020–2023), plus the 2025 dual-channel high-speed rotary joint. That cross-family presence across eight years makes Wang the most consistent contributor to the rotary joint data communication thread. The fact that Wang is on both the Rosenband-originated and the Li-originated sub-families suggests a systems-level architectural role bridging both approaches.
 
+*No LinkedIn profile identified (name too common to confirm a match without additional signal).*
+
 ### Zhe Li — Advanced rotary joint systems
 Li leads the dielectric waveguide plus wireless rotary joint family (US10742315, US10965367, US11804896) and is named on the 2025 dual-channel patent. His work represents the more recent, higher-performance generation of the rotary joint communication stack, where signal integrity over the full path — not just the wireless gap — becomes the binding constraint.
 
-### Daniel L. Rosenband — Original wireless rotary joint
+*No LinkedIn profile identified with confidence.*
+
+### Daniel L. Rosenband — Original wireless rotary joint ([LinkedIn](https://www.linkedin.com/in/daniel-rosenband-4296266/))
 Rosenband is lead inventor on the original three-patent "multiple wireless links" family (US9628170, US10033456, US10862579). His work established the conceptual foundation — that you solve the rotary joint problem with redundant wireless channels rather than a single high-reliability link — which subsequent inventors have refined and extended.
+
+*Rosenband joined Waymo in 2013 and currently leads compute systems, silicon, and performance optimization. Before Waymo he founded Sandburst, a high-speed networking silicon startup acquired by Broadcom, and holds a BS from MIT — a hardware systems background that tracks well with the rotary joint communication architecture work.*
 
 ### Joshua Jones, Gregory Hall, Alexander Zbrozek — Wireless power for rotating platforms
 This team holds both wireless power transfer via rotary link patents (US11841465, US12228683). Their work is the power-delivery counterpart to the data-link work of the Rosenband and Li families — together solving both halves of making the spinning sensor platform fully contact-free.
 
+*Alexander Zbrozek ([LinkedIn](https://www.linkedin.com/in/sasha-zbrozek-84aa5aa/)) — known as Sasha — was a Staff Hardware Engineer at Waymo from 2011 to 2021, specializing in lidar hardware architecture, inertial navigation, precision timing, and power handling; he is now VP of Hardware at Saildrone. His decade-long tenure and focus on power systems makes him the natural lead for the wireless power work in this family. No LinkedIn profiles identified for Joshua Jones or Gregory Hall with sufficient confidence.*
+
 ### Dieter Statezni and Sangram Patil — Charging infrastructure communication
 Statezni and Patil are the inventors on both charging station antenna patents (US20260070457A1, US12403790B2). This is a specialized infrastructure-side problem — how to build the depot communication system — that is distinct from the on-vehicle work and appears to represent a dedicated sub-team focused on fleet operations infrastructure.
 
+*Sangram Patil ([LinkedIn](https://www.linkedin.com/in/sangram-patil-277a5522/)) has held roles at Waymo, Apple, and Tesla, consistent with a hardware engineering background in automotive and consumer electronics. No LinkedIn profile identified for Dieter Statezni.*
+
 ### Michael Dane Fina, Filip Perich, Kenneth T. Ho — RF spectrum management
-This trio is named on the spectrum utilization exchange patent (US20250166506A1). Their work is the most network/systems-oriented in the portfolio, touching fleet coordination rather than individual vehicle hardware. Perich in particular has a background in dynamic spectrum access and cognitive radio, suggesting this is a deliberate hire rather than an internal career transition.
+This trio is named on the spectrum utilization exchange patent (US20250166506A1). Their work is the most network/systems-oriented in the portfolio, touching fleet coordination rather than individual vehicle hardware.
+
+*Filip Perich ([LinkedIn](https://www.linkedin.com/in/filipperich), [personal site](https://perich.net)) holds a PhD and at Waymo leads software for next-generation automotive radar systems. His academic and publication record is in dynamic spectrum access, cognitive radio, and distributed pervasive systems — precisely the background needed to design a fleet-wide RF interference exchange. This is a clear deliberate hire rather than an internal career transition. No LinkedIn profiles identified for Michael Dane Fina or Kenneth T. Ho with sufficient confidence.*
 
 ---
 
