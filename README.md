@@ -50,7 +50,10 @@ The workflow is driven by a **Claude Code skill** (`/patent-search`) that handle
 
 ### Prerequisites
 
-- **Claude Code** with the `patent-search` skill installed at `~/.claude/skills/patent-search/`
+- **Claude Code** with the `patent-search` skill. The skill lives in `skills/patent-search/` in this repo — symlink it into place on first clone:
+  ```bash
+  ln -s "$(pwd)/skills/patent-search" ~/.claude/skills/patent-search
+  ```
 - **USPTO ODP API key** — free, get one at [data.uspto.gov](https://data.uspto.gov/apis/getting-started)
 - **Python 3.9+** for the fetch scripts
 
