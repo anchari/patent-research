@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patent Search</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Patent Search</h1>
+
+    <section id="step-form" class="step">
+      <label>Company name
+        <input type="text" id="company" placeholder="e.g. Waymo LLC">
+      </label>
+      <label>Subject area
+        <input type="text" id="subject" placeholder="e.g. wireless communications">
+      </label>
+      <button id="start-btn">Start</button>
+    </section>
+
+    <section id="step-entities" class="step hidden">
+      <h2>Confirm legal entity names</h2>
+      <p>Which of these USPTO assignee names should be included in the search?</p>
+      <div id="entities-list" class="checklist"></div>
+      <button id="entities-btn">Continue</button>
+    </section>
+
+    <section id="step-keywords" class="step hidden">
+      <h2>Confirm search keywords</h2>
+      <p>Edit the list below (one per line), then continue.</p>
+      <textarea id="keywords-text" rows="8"></textarea>
+      <button id="keywords-btn">Continue</button>
+    </section>
+
+    <section id="step-progress" class="step hidden">
+      <h2>Running pipeline</h2>
+      <div id="progress-message">Starting...</div>
+      <progress id="progress-bar" max="100" value="0"></progress>
+    </section>
+
+    <section id="step-categorization" class="step hidden">
+      <h2>Review categorization</h2>
+      <p id="categorization-summary"></p>
+      <div id="categorization-table"></div>
+      <button id="categorization-btn">Generate report</button>
+    </section>
+
+    <section id="step-report" class="step hidden">
+      <h2>Report ready</h2>
+      <div id="downloads"></div>
+    </section>
+
+    <section id="step-error" class="step hidden">
+      <h2>Error</h2>
+      <p id="error-message"></p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

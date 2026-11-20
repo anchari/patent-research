@@ -122,6 +122,21 @@ The interactive checkpoints (entity disambiguation + search term approval) happe
 ### Filter abandoned applications out by default
 The USPTO returns all application statuses. For most use cases (understanding a company's IP portfolio), only issued patents matter — abandoned applications represent ideas that were dropped, often for strategic reasons unrelated to the invention's merit. Published-but-abandoned applications can be included on request.
 
+### Distinguish issued patents from applications, and state what is invisible
+Issued patents and published applications are counted and labelled separately everywhere (CSV `status`, report header, narrative). The USPTO public record cannot show unpublished nonprovisionals (inside the ~18-month publication window or filed with a non-publication request), provisionals (never published) or foreign filings. For a company with a recent filing program this hides most of its pipeline. Example: a company's S-1 might report 40 issued U.S. patents and 67 pending U.S. applications (32 nonprovisional, 35 provisional), while the search finds all 40 issued patents but only 7 published applications; the other 60 pending applications are unpublished nonprovisionals and provisionals. Each report therefore includes a coverage section, reconciles against 10-K/S-1 disclosures where they exist, and qualifies any conclusion drawn from absence as applying to the public record.
+
+### Report order: findings first, caveats after
+The report leads with what the company is doing (overview, where it innovates, where it doesn't) and puts the coverage caveats after those sections. Coverage still matters, but readers come for the findings; the header line and the qualified headline carry the essential caveat up front.
+
+### Infer strategic direction for startups, not for large companies
+For a startup, the patent record is a dated, inventor-attributed log of what the engineering team worked on. Vocabulary shifts, new inventor teams, areas that stop getting new inventions, continuation intensity and recent provisional titles reveal pivots and priorities (e.g., a startup whose early filings describe industrial IoT hardware and whose later filings shift to consumer devices and carrier services). For large companies, filing volume reflects legal budgets, acquisitions and many separate business units, so the skill limits inference to trends within the searched subject area.
+
+### Competitor comparison is lighter than the primary analysis
+Competitors (optional third argument) go through entity confirmation, search, metadata, abstract-based relevance filtering and categorization, but get no per-filing summaries, inventor profiles or appendix. They are mapped onto the primary company's categories (plus up to 3 competitor-only categories) so the comparison is like-for-like. There is a hard cap of 3 competitors and 100 filings per competitor, with no override, because each competitor multiplies USPTO and Google Patents calls.
+
+### Filing-activity chart counts by U.S. filing date
+The chart counts CSV rows by filing year, stacked by status, with the most recent ~18 months shaded as incomplete because most of those filings aren't published yet. Without the shading, every chart would show a misleading recent drop-off. Continuations are counted in the year they were filed.
+
 ### Exclude obvious false positives manually
 Patent assignment records occasionally contain data errors — an application assigned to a company that clearly doesn't belong to them (e.g., US7566599, an IBM semiconductor transistor patent, appeared in Tropos's assignment history). The relevance filter step relies on Claude's judgment to identify and exclude these rather than trying to automate it with rules.
 
@@ -202,7 +217,17 @@ A composite value score per patent would let the report highlight the most impor
 
 **Forward citations — use with caution** — the academic citation analogy is weaker here due to conflicting incentives. Companies are advised by counsel not to do extensive prior art searches (to avoid willful infringement exposure and treble damages), so citation counts are systematically suppressed in ways unrelated to patent importance. *Examiner-added* forward citations (where the USPTO examiner cited the patent during prosecution of a later application) are a somewhat cleaner signal than total forward citations, since examiners aren't subject to the same incentive distortion.
 
+**Implemented: per-patent claim analysis.** The skill now does the first step of the strength analysis for each filing (Step 4 claim fetch, CSV claim columns, and a "Portfolio strength" report section):
+- Total number of claims
+- Number of independent claims
+- Word count of each independent claim (shortest independent claim is the headline breadth figure)
+- Count of limiting clauses ("wherein", "such that", "comprising") per independent claim
+- A short plain-English note on how general the broadest claim is: what a competitor would have to do to infringe, and how easy it is to design around
+
+Breadth is rated Broad / Moderate / Narrow by reading the broadest independent claim, with word count only as a starting guide. Pending applications are rated provisionally because claims change during examination. Claims are fetched for the primary company only, never for competitors, to keep call volume bounded. The remaining signals below (international filing depth, maintenance fees, litigation and IPR, citations) and a composite score are still future work.
+
 **Implementation notes:**
+- Claim text for pending applications: USPTO ODP `/applications/{n}/documents` lists a `CLM` (Claims) document with an XML download, the same mechanism used for abstracts not yet on Google Patents
 - Claim text and international family data: both available from Google Patents pages — could be added to `fetch_abstracts.py` or a new `fetch_claims.py` script
 - Maintenance status: available from USPTO ODP API (`applicationStatusDescriptionText`)
 - Litigation/IPR history: requires a separate data source (Derwent, Lex Machina, or web search per patent)

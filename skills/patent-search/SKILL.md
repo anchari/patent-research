@@ -1,7 +1,7 @@
 ---
 name: patent-search
 description: Look up US patents and patent applications assigned to a company in a subject area, generate readable summaries, create logical categories, and export to a CSV.
-argument-hint: [company name] | [subject area]
+argument-hint: [company name] | [subject area] | [optional: competitor 1, competitor 2, competitor 3]
 ---
 
 The user wants to research the patent portfolio for a specific company and subject area:
@@ -9,8 +9,33 @@ The user wants to research the patent portfolio for a specific company and subje
 $ARGUMENTS
 
 Parse the arguments to identify:
-- **Company name** — the exact legal name or common name used in USPTO records (e.g., "Apple Inc", "3M Company", "International Business Machines")
-- **Subject area** — the technology or topic to search within (e.g., "noise cancellation", "battery technology", "large language models")
+- **Company name**: the exact legal name or common name used in USPTO records (e.g., "Apple Inc", "3M Company", "International Business Machines")
+- **Subject area**: the technology or topic to search within (e.g., "noise cancellation", "battery technology", "large language models")
+- **Competitors** (optional, third `|`-separated field, comma-separated): companies whose portfolios to compare against in the same subject area.
+
+**Hard cap: at most 3 competitors.** If more are given, stop before any searching and ask the user to choose 3. There is no override. Each competitor multiplies the API and Google Patents calls.
+
+---
+
+## Patent status terminology (use consistently in every output)
+
+Never use "patents" loosely to mean "everything found". Every count, CSV row and report statement must say which of these stages it refers to:
+
+| Stage | Public? | Visible to this skill? | Meaning |
+|---|---|---|---|
+| **Issued patent** | Yes | Yes | Granted and enforceable. |
+| **Published application (pending)** | Yes | Yes | Nonprovisional published by the USPTO (normally ~18 months after earliest priority date), still under examination. Not enforceable. |
+| **Published application (abandoned)** | Yes | Yes, excluded by default | Published, then dropped. |
+| **Unpublished (confidential) nonprovisional** | No | No | Pending but not yet published (inside the 18-month window, or filed with a non-publication request). |
+| **Provisional application** | No | Title only, once claimed | Placeholder that secures a filing date for 12 months. Never examined or published. ODP lists a provisional (type `PROVSNL`, usually "Provisional Application Expired") once a published filing claims priority to it; the titles hint at upcoming work. Unclaimed provisionals are invisible. |
+| **Foreign patents and applications** | Varies | Partly | EPO and national offices are outside this USPTO-based search. PCT applications filed through the U.S. receiving office do appear in ODP (type `PCT`). |
+
+Provisional and PCT records found in ODP are never CSV rows. Count them, and use the most recent provisional titles, in the coverage section.
+
+Consequences:
+- The search sees issued patents and published applications only. It can never give a company's total filings.
+- Recent activity is systematically under-counted: anything filed in roughly the last 18 months is mostly invisible, and provisionals are invisible until a published filing claims them.
+- Absence of published filings in an area means "no public patents", not "no filings".
 
 ---
 
@@ -51,6 +76,8 @@ Present the list to the user:
 > I've pre-selected the ones that look most likely — let me know if you'd like to add or remove any.
 
 Pre-select the most obvious matches. Wait for the user's confirmation before continuing. Use all confirmed entity names in all subsequent searches.
+
+**Competitors:** run the same entity discovery for each competitor and present all companies' entity lists in one confirmation, so the user approves everything at once.
 
 ---
 
@@ -119,6 +146,8 @@ If the API returns no results for all terms (e.g., very old company predating OD
 
 Build a working list of up to 100 unique application numbers.
 
+**Competitors:** repeat this step for each competitor with the same confirmed search terms (title keywords included if the subject area is narrower than the full portfolio). Apply the same 100-filing hard cap per competitor. If a competitor exceeds it, narrow with title keywords; don't raise the cap. Then run Step 4 (metadata, abstracts, relevance filter, status classification) on competitor filings too.
+
 ---
 
 ## Step 4 — Fetch patent details
@@ -157,10 +186,19 @@ Watch for these common false positive patterns that title-based searches cannot 
 - **Same legal name, different company** — A company recently founded or rebranded may share a legal name with an older unrelated entity whose patents remain in assignment records. If the abstract describes a completely different industry (e.g., consumer goods, medical devices), discard the patent.
 - **Polysemous keywords** — "Mesh" matches network topology patents and structural/material patents. "Antenna" matches communication antennas and physical mounting structures. "Radio" matches wireless RF communication and RF sensing. The abstract resolves the ambiguity; the title does not.
 
-**Status classification:**
+**Status classification** (use these exact labels):
 - `applicationStatusDescriptionText` contains "Patented Case" or "Patent Expired" → Status = "Issued"
-- Application has a publication number but no `patentNumber` → Status = "Published Application"
-- "Abandoned" → exclude unless the user specifically requested abandoned applications
+- Has a publication number (`earliestPublicationNumber`), no `patentNumber`, and status is not abandoned → Status = "Published Application (Pending)"
+- Status contains "Abandoned" → Status = "Published Application (Abandoned)"; exclude unless the user specifically requested abandoned applications
+- No `patentNumber` and no publication number → unpublished; exclude it from the CSV, but count it in the coverage section
+
+**Claims (primary company only):** for every retained filing, fetch the claim text:
+- **Issued patents, and applications already on Google Patents:** from the same Google Patents page as the abstract. Claims sit in `<section itemprop="claims">`, one `<div class="claim">` per claim. A claim containing a `<claim-ref>` is dependent; one without is independent.
+- **Filings not yet on Google Patents (recent grants and new publications):** from the USPTO file wrapper. Call `GET /api/v1/patent/applications/{applicationNumberText}/documents`, take the latest `CLM` (Claims) document, and download its XML option, which arrives as a tar archive containing the XML. For issued patents, use the claims as issued, not as originally filed.
+
+Record per filing: total claims, independent claims, the full text and word count of each independent claim, and the number of limiting clauses ("wherein", "such that", "configured to") in each. Stay within the existing 100-filing cap. Don't fetch claims for competitor filings.
+
+**Public-disclosure check:** if the company is public or has filed for an IPO, search its latest 10-K or S-1 for a patent count disclosure (typically phrased "we held N issued U.S. patents ... N patent applications pending ... including N provisional"). If found, record the figures and the as-of date for the coverage section in Step 8.
 
 ---
 
@@ -203,9 +241,16 @@ The CSV must have exactly these columns in this order:
 | `summary` | 2–3 sentence readable summary |
 | `inventors` | Inventor full names, comma-separated |
 | `year` | 4-digit year (grant year for issued; publication year for applications) |
-| `status` | "Issued" or "Published Application" |
+| `status` | "Issued", "Published Application (Pending)", or "Published Application (Abandoned)" (abandoned only if requested) |
+| `filed` | U.S. filing date, YYYY-MM-DD (`filingDate`); used for the filing-activity chart |
+| `total_claims` | Number of claims (as issued for patents; current published claims for applications) |
+| `independent_claims` | Number of independent claims |
+| `shortest_independent_words` | Word count of the shortest independent claim |
+| `claim_breadth` | "Broad", "Moderate" or "Narrow" (see Section 3 of Step 8) |
 
 Properly escape any commas or quotes within field values (standard CSV quoting).
+
+**Competitors** (only if competitors were given): write one more CSV, `[company-slug]-[subject-slug]-competitors-patents.csv`, with columns `company`, `number`, `title`, `category`, `inventors`, `year`, `status`, `filed`. Assign competitor filings to the primary company's Step 6 categories where they fit. Add at most 3 extra categories for competitor work that fits none, so the comparison can show areas where only competitors are active. Competitor filings don't get Step 5 summaries; read their abstracts only to filter for relevance and to categorize.
 
 ---
 
@@ -217,13 +262,49 @@ Save a Markdown report to the **current working directory** named:
 ```
 (e.g., `waymo-llc-wireless-communications-report.md`)
 
-The report has four sections:
+The report sections, in this order:
 
-**Header**
+1. Header and overview
+2. Where [Company] is innovating
+3. Where [Company] is not innovating
+4. Portfolio strength
+5. Coverage: issued patents vs. pending applications
+6. Competitive comparison (only if competitors were given)
+7. Key inventors and their areas of specialization
+8. Summary
+9. Appendix: patent reference
+
+**Header and overview**
 ```
 # [Company] — [Subject Area] Patent Portfolio
-> Analysis based on N issued patents and published applications, YYYY–YYYY
+> Analysis based on N issued U.S. patents and M published, pending U.S. applications, YYYY–YYYY, as visible in USPTO records on [date]. Not included: unpublished applications, provisionals, and foreign filings.
 ```
+
+Always give issued and published-application counts separately; never combine them into one "patents" number. In the narrative, call an application an application, not a patent.
+
+Follow with 2–3 intro paragraphs: the headline finding, the portfolio's origin (home-grown vs. acquired, from assignment records), and what it says about the company's direction (see "Inferring strategic direction" below). End the overview with the filing-activity chart.
+
+Qualify any headline or summary claim that depends on absence (e.g., "no invention originated at X", "X is not patenting Y") as applying to the public record.
+
+**Filing-activity chart** (end of overview)
+
+Count CSV rows by year of the `filed` date, stacked by status (Issued / Published Application (Pending)). Mark the most recent ~18 months, from the run date, as incomplete: most filings from that window are not public yet, so an apparent drop-off there is an artifact, not a slowdown. Say so in a caption. The caption should also note that continuations are counted in the year they were filed, so heavy continuation activity inflates later years. If invention families were identified (same title or continuation chain), also mark new families per year (first filing in each family) as a line or dots over the bars, and add a `New families` column to the table. The split separates new invention from continuations that widen claim coverage, which is often the more telling trend. Then add one or two sentences reading the trend: ramp-up, plateau, or bursts tied to funding rounds, product launches or acquisitions where known.
+- **Markdown:** a compact table, `Year | Issued | Published (pending) | Total`.
+- **HTML:** an inline SVG bar chart generated by a short script (no external libraries, so the file stays self-contained), with the incomplete window shaded and labelled. Follow the `dataviz` skill for colors, axes and labels if it's available.
+- **With competitors:** add a second chart with one line per company (total filings per year) on shared axes, and the same incomplete-window shading.
+
+**Inferring strategic direction**
+
+For startups and other small, focused portfolios (one company, a few inventor teams, roughly under 150 filings), the patents are a strong signal of business direction, and the report should draw that out. Look for:
+- **Vocabulary shifts** over filing years (e.g., "hub" and "data source" giving way to "user equipment" and "carrier"), which signal a change of product or customer.
+- **New inventor teams** appearing and old ones disappearing: new hires, acquisitions, or abandoned efforts.
+- **Areas that stop receiving new inventions** and get only continuations.
+- **Continuation intensity:** families continued repeatedly are ones the company is defending.
+- **Recent provisional titles** (Step 3) as the earliest hint of what comes next.
+
+Tie each inference to specific filings and dates, and state it as an inference.
+
+For large companies (many business units, hundreds or thousands of filings), don't infer corporate strategy from patents. Filing volume reflects legal budgets, acquisitions and many separate teams. Limit observations to trends within the searched subject area, and say why the inference is weaker.
 
 **Section 1 — Where [Company] is innovating**
 
@@ -234,22 +315,58 @@ Identify 2–5 meaningful clusters of patents that represent distinct areas of a
 - If multiple patents in the cluster span several years, note the progression — how the approach evolved over time
 - Explain why this area is strategically interesting or distinctive
 
-Do not just restate the categories from Step 6. Look for narrative threads that connect patents across categories: a problem that multiple teams are attacking from different angles, a progression from early exploratory work to mature production-ready solutions, or a set of patents that together constitute a complete sub-system.
+Do not just restate the categories from Step 6. Look for narrative threads that connect patents across categories: a problem that multiple teams are attacking from different angles, a progression from early exploratory work to mature production-ready solutions, or a set of patents that together constitute a complete sub-system. Order clusters so the evolution of the company's focus is visible (e.g., current priorities first, abandoned areas last).
 
 **Section 2 — Where [Company] is not innovating**
 
 Identify 3–5 notable gaps — subject areas adjacent to the portfolio where the company has zero or near-zero patents. For each gap:
 - Name the area (e.g., "5G/Cellular connectivity", "WiFi mesh networking", "Satellite uplink")
-- State clearly that there are no patents in this area
+- State clearly that there are no issued patents or published applications in this area (unpublished filings may still exist)
 - Offer a plausible explanation: is this a commodity input purchased from a supplier? A standards-body-defined protocol with nothing proprietary to invent? A strategic choice to rely on infrastructure rather than own it? An area the company has simply deprioritized?
 
 This section requires inference and judgment. Gaps in a patent portfolio are as informative as what's present — they reveal which problems the company treats as solved-by-others and where their differentiation strategy does not extend.
 
-**Section 3 — Key inventors and their areas of specialization**
+**Section 3 — Portfolio strength**
+
+Assess claim strength filing by filing, then roll up. Breadth here means how much a competitor would have to do to infringe: the fewer and more generic the required elements in the broadest independent claim, the broader the filing.
+
+Rate each filing's broadest independent claim:
+- **Broad:** a few essential elements in generic terms; hard to design around. Often under ~100 words.
+- **Moderate:** a recognizable technique with some specific limitations; a competitor could design around it with real engineering effort. Often ~100–200 words.
+- **Narrow:** many specific limitations (particular parameters, sequences, structures or "wherein" chains); easy to avoid by changing one detail. Often over ~200 words.
+
+Word counts are only a starting point. Base the rating on reading the claim, and note when the two disagree (e.g., a short claim full of unusual terms).
+
+Section contents:
+- **Summary table:** for issued patents and published applications separately, median total claims, median independent claims, median shortest-independent-claim length, and the count rated Broad / Moderate / Narrow.
+- **Broadest filings:** 3–5 filings, each with a one-sentence plain-English paraphrase of the broadest independent claim (what doing it would look like) and why it's hard to avoid.
+- **Narrowest filings:** 2–3 filings, with what limits them.
+- **By cluster and family:** which Section 1 clusters have the strongest claims, and whether continuations broaden or narrow the original family's claims. Continuations with broader claims than the parent signal a family the company is actively expanding.
+- **Caveats:** pending applications' claims can still change during examination, so rate them provisionally. This is a reading of claim scope, not a legal opinion on validity or infringement. International filing depth, maintenance fees and litigation history are not yet included.
+
+For a large portfolio, give full detail for the subject-area filings and keep the summary table for all of them.
+
+**Section 4 — Coverage: issued patents vs. pending applications**
+
+Heading: `## Coverage: issued patents vs. pending applications`. Include:
+- A short list of the filing stages from the terminology table above, noting which are visible and how many of each were found.
+- If a 10-K/S-1 disclosure was found in Step 4, a table reconciling it against this report: category | disclosed count | found | why the difference. Include the disclosure's as-of date.
+- What the invisible portion implies: e.g., provisionals are at most 12 months old, unpublished nonprovisionals are mostly under ~18 months old, so a large invisible pipeline signals recent filing activity that the public record doesn't yet show.
+- If any provisionals are visible, a table of the most recent ones (filed, title, published follow-on?) as a hint of upcoming work.
+- If no disclosure was found, say so and state that recent filings are under-counted by construction.
+
+**Section 5 — Competitive comparison** (only if competitors were given)
+
+- A table: category (rows) × company (columns), with issued / published-application counts in each cell, plus totals and first filing year.
+- The multi-company filing-activity chart.
+- 3–5 short paragraphs contrasting focus: where they overlap, which areas only one company patents, who filed first in shared areas, relative scale and momentum (recent filing rate), and what the differences suggest about each company's strategy (with the same small-vs-large-company caution as above).
+- Cite specific competitor patent numbers when making a point. Competitors get no inventor section and no appendix entries.
+
+**Section 6 — Key inventors and their areas of specialization**
 
 For each inventor who appears on 2 or more patents in the portfolio:
 - List their name as a subheading, followed by a one-line characterization of their focus area
-- State their patent count and which categories/clusters they span
+- State their filing count (issued and published applications separately) and which categories/clusters they span
 - Explain what their cross-category presence (or lack of it) implies about their role — broad systems architect, narrow specialist, team lead on a single problem, etc.
 - Note any temporal patterns: are they active on the oldest patents (foundational work), the newest (current frontier), or both?
 
@@ -269,9 +386,9 @@ If the profile page is accessible, extract their current title, employer, and an
 
 If no LinkedIn profile is found, note it briefly ("No LinkedIn profile found") rather than omitting the search attempt entirely. Do not fabricate profile details.
 
-**Closing summary paragraph**
+**Summary**
 
-2–4 sentences characterizing the portfolio as a whole: what does it reveal about the company's theory of where their engineering creates proprietary value, versus what they buy from the ecosystem?
+2–4 sentences characterizing the portfolio as a whole: what does it reveal about the company's theory of where their engineering creates proprietary value, versus what they buy from the ecosystem? For startups, close with where the company appears to be heading.
 
 **Appendix — Patent Reference**
 
@@ -280,6 +397,7 @@ After the summary, append a full patent listing grouped by category (same catego
 ```
 [Patent number as a link to patents.google.com/patent/[number]/en] — [Title]
 [Status] [Year] · [Inventors, comma-separated]
+Claims: [total] total, [independent] independent · Breadth: [Broad/Moderate/Narrow]
 
 [Summary paragraph from Step 5]
 ```
@@ -319,11 +437,15 @@ The HTML file must be fully self-contained (no external stylesheets or scripts).
 
 Render all Markdown formatting as equivalent HTML elements (`#` → `<h1>`, `**text**` → `<strong>`, `> text` → `<blockquote>`, etc.).
 
+**Annotation layer:** make the HTML report annotatable per the `annotate-html` skill (Part 1) — inline `~/.claude/skills/annotate-html/assets/annotate.css` and `annotate.js` plus the empty `annotations-data` block before `</body>`. The user can then highlight passages, leave comments (saved to a sidecar `{report}.annotations.json`), and later ask you to respond to them inline (the `annotate-html` skill's Part 2 workflow).
+
 ---
 
 ## Step 9 — Report to user
 
 After writing the CSV and both report files, tell the user:
-1. All three filenames and the total number of patents included
+1. All output filenames (three, or four with a competitors CSV), the number of issued patents and the number of published applications (stated separately), and what the search cannot see (unpublished applications, provisionals, foreign filings), with any 10-K/S-1 figures for comparison
 2. A list of the categories from the CSV, each with a count of patents assigned to it
-3. 1–2 sentences pointing to the most notable finding in the narrative report
+3. Filing counts by year (from the chart), noting the incomplete recent window
+4. The claim-breadth split (Broad / Moderate / Narrow) and the broadest filing
+5. 1–2 sentences pointing to the most notable finding in the narrative report, and, if competitors were compared, the sharpest contrast

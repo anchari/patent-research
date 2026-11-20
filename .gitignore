@@ -1,11 +1,22 @@
 # Intermediate scratch files (reproducible via scripts)
 *.json
 *.txt
+!webapp/requirements.txt
 
 # Python
 __pycache__/
 *.pyc
 .env
+.venv/
 
 # macOS
 .DS_Store
+
+# Patent search outputs are private by default; only the example runs are published
+*-patents.csv
+*-report.md
+*-report.html
+!data/tropos-networks-inc-wireless-patents.csv
+!data/waymo-llc-wireless-communications-patents.csv
+!data/waymo-llc-wireless-communications-report.md
+!data/waymo-llc-wireless-communications-report.html
