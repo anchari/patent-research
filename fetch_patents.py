@@ -13,11 +13,10 @@ Returns a list of application numbers (one per line) to stdout or a file.
 """
 
 import sys
-import json
-import urllib.request
-import urllib.parse
 import urllib.error
 import argparse
+
+from odp_client import odp_get_json
 
 MAX_RESULTS = 500
 
@@ -41,20 +40,14 @@ def fetch_applications(assignee_name: str, api_key: str, keywords: list[str]) ->
     Raises SystemExit if total results exceed MAX_RESULTS.
     """
     base_url = "https://api.uspto.gov/api/v1/patent/applications/search"
-    headers = {"X-Api-Key": api_key}
     query = build_query(assignee_name, keywords)
     limit = 100
     offset = 0
     all_items = []
 
     while True:
-        params = urllib.parse.urlencode({"q": query, "limit": limit, "offset": offset})
-        url = f"{base_url}?{params}"
-        req = urllib.request.Request(url, headers=headers)
-
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read())
+            data = odp_get_json(base_url, api_key, {"q": query, "limit": limit, "offset": offset})
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 break  # zero results — not an error

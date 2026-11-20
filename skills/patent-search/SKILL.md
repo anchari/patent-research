@@ -39,6 +39,15 @@ Consequences:
 
 ---
 
+## USPTO ODP access rules (apply to every ODP call)
+
+ODP allows **one request in flight per API key** (concurrent calls with the same key are blocked with HTTP 429) and 4–15 requests per second depending on call type. The Documents API (`/applications/{n}/documents` and its downloads) has a weekly cap of 1.2 million calls; no run comes close.
+
+- **Never send ODP calls in parallel.** No parallel tool calls that hit `api.uspto.gov`, no backgrounded `curl`s, no thread pools.
+- **Route every call through the repo's rate-limited client.** Use the scripts (`fetch_patents.py`, `fetch_metadata.py`), or, for ad hoc calls (entity discovery, claim and document downloads), Python that imports `odp_get` / `odp_get_json` from `odp_client.py` in the repo root. The client holds a machine-wide lock, so it also serializes against the web app and other scripts. It enforces at least 0.3s between requests and retries 429s with backoff. The `curl` examples below show query syntax only; don't use raw `curl` loops for bulk calls.
+- **Follow download redirects immediately.** Signed download URLs expire within seconds, so never collect download links to fetch later. `odp_get` follows redirects within the same call.
+- **Prefer Google Patents for document text** (abstracts, claims). Use the ODP Documents API only for filings Google Patents doesn't have yet.
+
 ## Step 1 — Discover and confirm assignee entity names
 
 Patent records use precise legal entity names that may differ from the company name the user provided, and a company may appear under multiple names (historical renames, subsidiaries, acquired entities).
@@ -192,11 +201,11 @@ Watch for these common false positive patterns that title-based searches cannot 
 - Status contains "Abandoned" → Status = "Published Application (Abandoned)"; exclude unless the user specifically requested abandoned applications
 - No `patentNumber` and no publication number → unpublished; exclude it from the CSV, but count it in the coverage section
 
-**Claims (primary company only):** for every retained filing, fetch the claim text:
-- **Issued patents, and applications already on Google Patents:** from the same Google Patents page as the abstract. Claims sit in `<section itemprop="claims">`, one `<div class="claim">` per claim. A claim containing a `<claim-ref>` is dependent; one without is independent.
-- **Filings not yet on Google Patents (recent grants and new publications):** from the USPTO file wrapper. Call `GET /api/v1/patent/applications/{applicationNumberText}/documents`, take the latest `CLM` (Claims) document, and download its XML option, which arrives as a tar archive containing the XML. For issued patents, use the claims as issued, not as originally filed.
+**Claims (issued patents of the primary company only):** for every retained issued patent, fetch the claim text. Skip published applications, because their claims are likely to change during examination. Skip competitor filings too.
+- **Issued patents on Google Patents:** from the same Google Patents page as the abstract. Claims sit in `<section itemprop="claims">`, one `<div class="claim">` per claim. A claim containing a `<claim-ref>` is dependent; one without is independent.
+- **Recent grants not yet on Google Patents:** from the USPTO file wrapper. Call `GET /api/v1/patent/applications/{applicationNumberText}/documents`, take the latest `CLM` (Claims) document (the claims as issued, not as originally filed), and download its XML option with `odp_get` (it arrives as a tar archive containing the XML). Fetch one patent at a time; never in parallel.
 
-Record per filing: total claims, independent claims, the full text and word count of each independent claim, and the number of limiting clauses ("wherein", "such that", "configured to") in each. Stay within the existing 100-filing cap. Don't fetch claims for competitor filings.
+Record per patent: total claims, independent claims, the full text and word count of each independent claim, and the number of limiting clauses ("wherein", "such that", "configured to") in each. Stay within the existing 100-filing cap.
 
 **Public-disclosure check:** if the company is public or has filed for an IPO, search its latest 10-K or S-1 for a patent count disclosure (typically phrased "we held N issued U.S. patents ... N patent applications pending ... including N provisional"). If found, record the figures and the as-of date for the coverage section in Step 8.
 
@@ -243,10 +252,10 @@ The CSV must have exactly these columns in this order:
 | `year` | 4-digit year (grant year for issued; publication year for applications) |
 | `status` | "Issued", "Published Application (Pending)", or "Published Application (Abandoned)" (abandoned only if requested) |
 | `filed` | U.S. filing date, YYYY-MM-DD (`filingDate`); used for the filing-activity chart |
-| `total_claims` | Number of claims (as issued for patents; current published claims for applications) |
-| `independent_claims` | Number of independent claims |
-| `shortest_independent_words` | Word count of the shortest independent claim |
-| `claim_breadth` | "Broad", "Moderate" or "Narrow" (see Section 3 of Step 8) |
+| `total_claims` | Number of claims as issued (blank for published applications) |
+| `independent_claims` | Number of independent claims (blank for published applications) |
+| `shortest_independent_words` | Word count of the shortest independent claim (blank for published applications) |
+| `claim_breadth` | "Broad", "Moderate" or "Narrow" (see Section 3 of Step 8); blank for published applications |
 
 Properly escape any commas or quotes within field values (standard CSV quoting).
 
@@ -267,7 +276,7 @@ The report sections, in this order:
 1. Header and overview
 2. Where [Company] is innovating
 3. Where [Company] is not innovating
-4. Portfolio strength
+4. Portfolio strength (experimental)
 5. Coverage: issued patents vs. pending applications
 6. Competitive comparison (only if competitors were given)
 7. Key inventors and their areas of specialization
@@ -326,9 +335,13 @@ Identify 3–5 notable gaps — subject areas adjacent to the portfolio where th
 
 This section requires inference and judgment. Gaps in a patent portfolio are as informative as what's present — they reveal which problems the company treats as solved-by-others and where their differentiation strategy does not extend.
 
-**Section 3 — Portfolio strength**
+**Section 3 — Portfolio strength (experimental)**
 
-Assess claim strength filing by filing, then roll up. Breadth here means how much a competitor would have to do to infringe: the fewer and more generic the required elements in the broadest independent claim, the broader the filing.
+Heading: `## Portfolio strength (experimental)`. Open the section with this note, in italics: *This section is experimental. It rates issued patents only, from a reading of their claims; the method is still being refined, and the results are not a legal opinion on validity or infringement.*
+
+Issued patents only. Published applications are excluded because their claims are likely to change during examination, so conclusions about them would be premature; state how many were excluded.
+
+Assess claim strength patent by patent, then roll up. Breadth here means how much a competitor would have to do to infringe: the fewer and more generic the required elements in the broadest independent claim, the broader the filing.
 
 Rate each filing's broadest independent claim:
 - **Broad:** a few essential elements in generic terms; hard to design around. Often under ~100 words.
@@ -338,13 +351,12 @@ Rate each filing's broadest independent claim:
 Word counts are only a starting point. Base the rating on reading the claim, and note when the two disagree (e.g., a short claim full of unusual terms).
 
 Section contents:
-- **Summary table:** for issued patents and published applications separately, median total claims, median independent claims, median shortest-independent-claim length, and the count rated Broad / Moderate / Narrow.
-- **Broadest filings:** 3–5 filings, each with a one-sentence plain-English paraphrase of the broadest independent claim (what doing it would look like) and why it's hard to avoid.
-- **Narrowest filings:** 2–3 filings, with what limits them.
-- **By cluster and family:** which Section 1 clusters have the strongest claims, and whether continuations broaden or narrow the original family's claims. Continuations with broader claims than the parent signal a family the company is actively expanding.
-- **Caveats:** pending applications' claims can still change during examination, so rate them provisionally. This is a reading of claim scope, not a legal opinion on validity or infringement. International filing depth, maintenance fees and litigation history are not yet included.
+- **Summary table** (issued patents): median total claims, median independent claims, median shortest-independent-claim length, and the count rated Broad / Moderate / Narrow.
+- **Broadest patents:** 3–5 issued patents, each with a one-sentence plain-English paraphrase of the broadest independent claim (what doing it would look like) and why it's hard to avoid.
+- **By cluster and family:** which Section 1 clusters have the strongest issued claims, and whether issued continuations broaden or narrow the original family's claims. Continuations with broader claims than the parent signal a family the company is actively expanding.
+- **Caveats:** international filing depth, maintenance fees and litigation history are not yet included.
 
-For a large portfolio, give full detail for the subject-area filings and keep the summary table for all of them.
+For a large portfolio, give full detail for the subject-area patents and keep the summary table for all issued patents.
 
 **Section 4 — Coverage: issued patents vs. pending applications**
 
@@ -397,7 +409,7 @@ After the summary, append a full patent listing grouped by category (same catego
 ```
 [Patent number as a link to patents.google.com/patent/[number]/en] — [Title]
 [Status] [Year] · [Inventors, comma-separated]
-Claims: [total] total, [independent] independent · Breadth: [Broad/Moderate/Narrow]
+Claims: [total] total, [independent] independent · Breadth: [Broad/Moderate/Narrow]   (issued patents only; omit this line for applications)
 
 [Summary paragraph from Step 5]
 ```
@@ -447,5 +459,5 @@ After writing the CSV and both report files, tell the user:
 1. All output filenames (three, or four with a competitors CSV), the number of issued patents and the number of published applications (stated separately), and what the search cannot see (unpublished applications, provisionals, foreign filings), with any 10-K/S-1 figures for comparison
 2. A list of the categories from the CSV, each with a count of patents assigned to it
 3. Filing counts by year (from the chart), noting the incomplete recent window
-4. The claim-breadth split (Broad / Moderate / Narrow) and the broadest filing
+4. The claim-breadth split (Broad / Moderate / Narrow) for issued patents and the broadest patent, noting that the analysis is experimental
 5. 1–2 sentences pointing to the most notable finding in the narrative report, and, if competitors were compared, the sharpest contrast

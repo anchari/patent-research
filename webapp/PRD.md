@@ -1,5 +1,7 @@
 # PRD — Patent Search Web App
 
+> **Status: incomplete.** This app implements an earlier version of the `/patent-search` workflow and is not functionally equivalent to the skill in Claude Code. See "Future direction" below and the root `PRD.md` roadmap.
+
 ## Problem Statement
 
 The patent portfolio research workflow in this repo (`skills/patent-search/` + the `fetch_*.py` scripts) today only runs inside an interactive Claude Code session: the user has to open Claude Code, invoke `/patent-search`, and drive a chat-based back-and-forth through company disambiguation, keyword approval, and result review. There's no way to kick off or monitor a run from a plain browser tab without a Claude Code session open.
@@ -41,6 +43,7 @@ A single user (the repo owner): technical enough to run a local Python app and s
 - **Ephemeral runs.** Each run lives for the duration of the browser session; the app does not maintain a searchable history of past runs. Output files are available as downloads at the end of a run — the user decides whether to save them into the repo's `data/` folder following the existing project convention.
 - **Latency.** A typical run (15–60 patents, based on the two committed examples) involves one Anthropic API call per pipeline stage plus one relevance-filter and one summary call per candidate patent, and can take a few minutes end-to-end. Progress feedback (FR-9) is required so this doesn't read as a hang.
 - **Partial-failure tolerance.** If a single patent's abstract fetch fails, the pipeline skips it and continues, matching the existing script behavior — one bad fetch shouldn't abort the run.
+- **USPTO ODP rate limits.** All ODP calls must respect the published limits: one request in flight per API key, and no more than ODP's per-second rate. Concurrent runs (or a run alongside the CLI scripts) must not send parallel requests with the same key. Transient HTTP 429 responses are retried with backoff rather than failing the run.
 - **No mid-run resume.** If the browser is refreshed or closed mid-run, the run is lost and must be restarted; the app does not persist in-progress pipeline state.
 
 ## Out of Scope (v1)
@@ -48,6 +51,29 @@ A single user (the repo owner): technical enough to run a local Python app and s
 - Multi-user accounts, authentication, or access control.
 - Persisted, browsable history of past runs within the app.
 - Resuming a run after a browser refresh or server restart.
-- Patent value/importance scoring (already tracked as a future enhancement in the root `DESIGN.md`; independent of this app).
+- Patent value/importance scoring (tracked in the root `PRD.md` roadmap; independent of this app).
 - Hosting or deployment beyond a local machine.
 - Changing or removing the existing Claude Code skill or `fetch_*.py` scripts, or altering their CLI behavior — this app is additive and reuses their logic rather than replacing them (see FR-13).
+
+## Future direction (not yet decided)
+
+The app re-implements the skill's judgment steps as its own Anthropic API calls (`backend/llm.py`, `backend/pipeline.py`), following a snapshot of `skills/patent-search/SKILL.md`. Since then the skill has gained competitor comparison, issued-vs-application status labels, a coverage section, a new section order, a filing-activity chart and an experimental claim analysis, none of which the app has. Every future skill change would also have to be ported by hand.
+
+Which strategy to adopt depends on the app's role, still undecided: a personal browser front end for the repo owner, or the foundation of a multi-user product. A multi-user product would also need decisions on per-run LLM cost, pricing, accounts and hosting.
+
+- **A. Run the skill itself via the Claude Agent SDK.**
+  - **How:** the backend runs `SKILL.md` without a terminal. Checkpoint questions (entity confirmation, keyword approval) come back through the SDK and are shown as forms, tool calls and messages stream to the progress view, and finished files are served for download.
+  - **Pros:** a single source of truth, so skill changes appear automatically, and the backend shrinks to a thin layer.
+  - **Cons:**
+    - an agent session's context grows over many turns, so a run likely costs several times the current app's (about the same as a terminal skill run)
+    - SDK usage may be billed as API tokens rather than under a Claude plan
+    - progress is less precisely structured
+    - output varies run to run, as in the terminal
+- **B. Shared deterministic scripts plus shared judgment instructions.**
+  - **How:** move status classification, coverage counts, CSV format, chart drawing and report rendering into scripts both interfaces call. Move each judgment step's instructions into files that both `SKILL.md` and the app's prompts load.
+  - **Pros:** keeps the app's cheap, single-purpose calls, and instruction changes reach both interfaces.
+  - **Cons:** the app keeps its own orchestration, so new workflow steps (like competitors) still need some app code.
+- **C. Measure first.** Run the same company through the current app and the skill, and compare token usage and cost before choosing.
+
+A and B aren't exclusive: B's shared scripts would also make terminal runs more consistent.
+

@@ -10,7 +10,7 @@ Researching a company's patent portfolio in a given technology area is slow, man
 
 It's a hybrid Python scripts + Claude Code skill workflow (`/patent-search [company] | [subject]`) — see the full step-by-step breakdown below. Two example runs are committed: Tropos Networks (62 wireless-networking patents, 2005–2017) and Waymo LLC (17 wireless-communications patents, 2017–2025, with full narrative report).
 
-See `DESIGN.md` for the full system design, data sources, and known limitations (e.g., the 404-as-empty-result quirk in the USPTO API, fragility of Google Patents scraping) and a detailed future-enhancement plan for patent value/importance scoring.
+See `PRD.md` for use cases, requirements and the roadmap (including backlog and future ideas), and `DESIGN.md` for the full system design, data sources and known limitations (e.g., the 404-as-empty-result quirk in the USPTO API, fragility of Google Patents scraping).
 
 ## How it works
 
@@ -81,9 +81,11 @@ Examples:
 
 The skill will ask for your ODP API key on first use, then walk through company disambiguation and keyword confirmation before invoking the scripts.
 
-### Web app (alternative to Claude Code)
+### Web app (alternative to Claude Code) — incomplete
 
-The same interactive workflow — company/keyword approval, live progress, categorization review — is also available as a local web app in `webapp/`, for running it without a Claude Code session open. It's a second interface on top of the same scripts and USPTO/Anthropic APIs; the CLI scripts and `/patent-search` skill above are unaffected either way. See `webapp/PRD.md` and `webapp/DESIGN.md` for what it does and how it's built, or jump straight to setup:
+> The web app runs an earlier version of the workflow and is **not functionally equivalent** to the `/patent-search` skill (no competitor comparison, status labels, coverage section, filing chart or claim analysis). Use the skill for complete reports. See `webapp/PRD.md` ("Future direction").
+
+An earlier version of the interactive workflow — company/keyword approval, live progress, categorization review — is also available as a local web app in `webapp/`, for running it without a Claude Code session open. It's a second interface on top of the same scripts and USPTO/Anthropic APIs; the CLI scripts and `/patent-search` skill above are unaffected either way. See `webapp/PRD.md` and `webapp/DESIGN.md` for what it does and how it's built, or jump straight to setup:
 
 ```bash
 cd webapp
@@ -139,13 +141,17 @@ python3 fetch_abstracts.py tropos_metadata.json --output tropos_abstracts.json
 
 Uses a 0.8s delay between requests to avoid rate limiting. Tries both `B2` and `B1` URL suffixes on 404.
 
+### odp_client.py
+
+Shared helper that every USPTO ODP request goes through (both scripts above and the web app). It enforces ODP's rate limits machine-wide: one request in flight at a time, at least 0.3s between requests, and automatic retry with backoff on HTTP 429. The limits are fixed and can't be overridden. `fetch_metadata.py --delay` adds extra time on top. For ad hoc ODP calls in Python, use `from odp_client import odp_get_json`.
+
 ---
 
 ## Data files
 
 Output files are stored in `data/`. Each run produces three files with the same base name:
-- `[company-slug]-[subject-slug]-patents.csv` — structured data (number, title, category, summary, inventors, year, status, filed, total_claims, independent_claims, shortest_independent_words, claim_breadth). `status` is "Issued" or "Published Application (Pending)" ("Published Application (Abandoned)" only on request)
-- `[company-slug]-[subject-slug]-report.md` — narrative analysis (overview with filing-activity chart, innovation areas, gaps, portfolio strength from claim analysis, coverage of issued patents vs. pending applications, optional competitive comparison, key inventor profiles, patent-reference appendix)
+- `[company-slug]-[subject-slug]-patents.csv` — structured data (number, title, category, summary, inventors, year, status, filed, total_claims, independent_claims, shortest_independent_words, claim_breadth; claim columns are filled for issued patents only). `status` is "Issued" or "Published Application (Pending)" ("Published Application (Abandoned)" only on request)
+- `[company-slug]-[subject-slug]-report.md` — narrative analysis (overview with filing-activity chart, innovation areas, gaps, experimental portfolio strength from issued-patent claims, coverage of issued patents vs. pending applications, optional competitive comparison, key inventor profiles, patent-reference appendix)
 - `[company-slug]-[subject-slug]-competitors-patents.csv` — only when competitors are given: competitor filings mapped to the same categories (at most 3 competitors, 100 filings each)
 
 Coverage limits: the USPTO data only shows issued patents and published applications. Unpublished nonprovisionals (roughly the last 18 months of filings), provisional applications and foreign filings are not visible, so each report includes a coverage section and, where available, reconciles counts against the company's 10-K or S-1 disclosure.

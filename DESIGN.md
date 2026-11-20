@@ -75,6 +75,7 @@ The workflow is multi-step and interactive. Two confirmation checkpoints happen 
 | `fetch_patents.py` | Query USPTO ODP API by assignee name; return all application numbers | CLI: assignee name + API key → text file of app numbers |
 | `fetch_metadata.py` | Fetch per-application structured metadata from ODP API | CLI: app numbers file + API key → `metadata.json` |
 | `fetch_abstracts.py` | Fetch abstract text for each issued patent from Google Patents | CLI: `metadata.json` → `abstracts.json` |
+| `odp_client.py` | Shared, rate-limited ODP access (`odp_get`, `odp_get_json`) used by the scripts, the web app and the skill's ad hoc calls | Library: URL + API key (+ params) → response body / JSON |
 
 ### Claude skill (`~/.claude/skills/patent-search/`)
 
@@ -91,7 +92,10 @@ The skill (`SKILL.md`) drives the interactive workflow. It orchestrates the step
   - `GET /api/v1/patent/applications/search?q=...&limit=100&offset=0` — search by assignee name or title keywords
   - `GET /api/v1/patent/applications/{applicationNumberText}/meta-data` — per-application details
 - **Query field used for assignee search:** `assignmentBag.assigneeBag.assigneeNameText:"Company Name"` — this covers both original filers and patents reassigned after filing, which is essential for acquired companies (see Design Decisions below).
-- **Does not provide:** Abstracts. Full text is not in the file wrapper data.
+- **Continuity data:** every search result includes `parentContinuityBag` and `childContinuityBag` (relationship type such as CON, CIP or PRO, related application number, filing date and status), so family trees need no extra calls. A granted patent's child list can reveal pending continuations that are not yet published. (Also available per application at `GET /api/v1/patent/applications/{applicationNumberText}/continuity`.)
+- **Documents endpoint:** `GET /api/v1/patent/applications/{applicationNumberText}/documents` lists file-wrapper documents (e.g. `ABST` abstract, `CLM` claims) with download links; XML downloads arrive as tar archives. Used only for filings Google Patents doesn't have yet.
+- **Rate limits** (USPTO ODP "API Rate Limits" page, confirmed November 2026): one request in flight per API key (concurrent calls with the same key are blocked with HTTP 429); 4–15 requests per second depending on call type; weekly caps in the millions, including 1,200,000 calls per week for the Patent File Wrapper Documents API. Download links are redirected to signed URLs that expire within seconds. (The Bulk Datasets Downloads API has separate limits, including 20 downloads per year of the same file and 5 files per 10 seconds per IP address, but this project doesn't use it.)
+- **Does not provide:** Abstracts in the metadata. Full text is not in the file wrapper metadata.
 - **Coverage:** Good back to ~2000. Earlier patents may be incomplete.
 
 ### Google Patents (`patents.google.com`)
@@ -137,6 +141,9 @@ Competitors (optional third argument) go through entity confirmation, search, me
 ### Filing-activity chart counts by U.S. filing date
 The chart counts CSV rows by filing year, stacked by status, with the most recent ~18 months shaded as incomplete because most of those filings aren't published yet. Without the shading, every chart would show a misleading recent drop-off. Continuations are counted in the year they were filed.
 
+### All ODP calls go through one rate-limited client
+`odp_client.py` is the only code that talks to `api.uspto.gov`. It holds a cross-process file lock (in the system temp directory) for the duration of each request, so only one request is in flight per machine, across threads, CLI scripts and web-app runs. It also enforces at least 0.3s between requests (about 3.3 per second, under ODP's lowest 4-per-second figure), retries HTTP 429 up to 4 times with exponential backoff (2s, 4s, 8s, 16s), and follows download redirects within the same call so signed URLs can't expire. The limits are fixed constants with no override, consistent with the project's preference for hard caps. `fetch_metadata.py --delay` can only add time on top of the floor. A machine-wide lock is stricter than ODP strictly needs (the limit is per key), but this tool runs with a single key, and the lock prevents the failure mode that matters: two runs at once sharing one key. The skill also tells Claude never to send ODP calls in parallel and to use the scripts or `odp_client` for ad hoc calls.
+
 ### Exclude obvious false positives manually
 Patent assignment records occasionally contain data errors — an application assigned to a company that clearly doesn't belong to them (e.g., US7566599, an IBM semiconductor transistor patent, appeared in Tropos's assignment history). The relevance filter step relies on Claude's judgment to identify and exclude these rather than trying to automate it with rules.
 
@@ -178,22 +185,9 @@ If you re-run the workflow for the same company, all fetches repeat from scratch
 
 ## Future improvements
 
-### Near-term
-- [ ] Add `--since` date filter to `fetch_patents.py` to support incremental updates
-- [ ] Add retry logic with exponential backoff to `fetch_abstracts.py` for 503 responses
-- [ ] Surface the abstract in the `fetch_metadata.py` output if the ODP API adds it (check periodically)
-- [ ] Add a `--include-abandoned` flag to `fetch_metadata.py`
+The roadmap, backlog and unscheduled ideas live in the **Roadmap** section of [`PRD.md`](PRD.md). This document keeps only the technical design notes for roadmap items that need them.
 
-### Medium-term
-- [ ] Parallel summarization: split the patent list into batches and run summaries across multiple Claude calls
-- [ ] Fixed category schemes: allow the user to specify a category list upfront, then have Claude assign patents to those fixed categories rather than generating them dynamically
-- [ ] International coverage: extend to EPO (via [ops.epo.org](https://ops.epo.org)) and WIPO (via [patentscope.wipo.int](https://patentscope.wipo.int)) for non-US filings
-
-### Longer-term
-- [ ] Portfolio comparison: run two companies side-by-side and identify overlapping areas (patent landscape analysis)
-- [ ] Trend analysis: group patents by filing year and category to visualize how a company's research focus shifted over time
-
-### Patent value / importance scoring (future enhancement)
+### Patent value / importance scoring (design notes for the PRD roadmap)
 
 A composite value score per patent would let the report highlight the most important patents rather than treating all retained patents equally. Several signals are available; none is definitive on its own.
 
@@ -217,14 +211,14 @@ A composite value score per patent would let the report highlight the most impor
 
 **Forward citations — use with caution** — the academic citation analogy is weaker here due to conflicting incentives. Companies are advised by counsel not to do extensive prior art searches (to avoid willful infringement exposure and treble damages), so citation counts are systematically suppressed in ways unrelated to patent importance. *Examiner-added* forward citations (where the USPTO examiner cited the patent during prosecution of a later application) are a somewhat cleaner signal than total forward citations, since examiners aren't subject to the same incentive distortion.
 
-**Implemented: per-patent claim analysis.** The skill now does the first step of the strength analysis for each filing (Step 4 claim fetch, CSV claim columns, and a "Portfolio strength" report section):
+**Implemented (experimental): per-patent claim analysis.** The skill now does the first step of the strength analysis for each issued patent (Step 4 claim fetch, CSV claim columns, and a "Portfolio strength (experimental)" report section):
 - Total number of claims
 - Number of independent claims
 - Word count of each independent claim (shortest independent claim is the headline breadth figure)
 - Count of limiting clauses ("wherein", "such that", "comprising") per independent claim
 - A short plain-English note on how general the broadest claim is: what a competitor would have to do to infringe, and how easy it is to design around
 
-Breadth is rated Broad / Moderate / Narrow by reading the broadest independent claim, with word count only as a starting guide. Pending applications are rated provisionally because claims change during examination. Claims are fetched for the primary company only, never for competitors, to keep call volume bounded. The remaining signals below (international filing depth, maintenance fees, litigation and IPR, citations) and a composite score are still future work.
+Breadth is rated Broad / Moderate / Narrow by reading the broadest independent claim, with word count only as a starting guide. Published applications are excluded: their claims are likely to change during examination, so conclusions would be premature. The report doesn't list the narrowest patents, since the broadest ones carry the signal. Claims are fetched for the primary company only, never for competitors, to keep call volume bounded. The remaining signals below (international filing depth, maintenance fees, litigation and IPR, citations) and a composite score are still future work.
 
 **Implementation notes:**
 - Claim text for pending applications: USPTO ODP `/applications/{n}/documents` lists a `CLM` (Claims) document with an XML download, the same mechanism used for abstracts not yet on Google Patents

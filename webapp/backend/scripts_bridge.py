@@ -4,13 +4,12 @@ Bridges the web backend to the existing root-level CLI scripts.
 Adds the repo root to sys.path and re-exports the scripts' already-decomposed
 core functions unmodified. The scripts themselves are never edited, so their
 command-line behavior (`python3 fetch_patents.py ...`) is unaffected — see
-PRD FR-13 / DESIGN.md "Reuse by direct import, zero script edits".
+PRD FR-13 / DESIGN.md "Reuse by direct import, zero script edits". All ODP
+requests, including discover_entities below, go through the shared, rate-limited
+odp_client (PRD NFR "USPTO ODP rate limits").
 """
 
 import sys
-import json
-import urllib.request
-import urllib.parse
 import urllib.error
 from pathlib import Path
 
@@ -21,6 +20,7 @@ if str(REPO_ROOT) not in sys.path:
 from fetch_patents import fetch_applications, MAX_RESULTS  # noqa: E402
 from fetch_metadata import fetch_metadata  # noqa: E402
 from fetch_abstracts import fetch_abstract  # noqa: E402
+from odp_client import odp_get_json  # noqa: E402
 
 __all__ = [
     "fetch_applications",
@@ -41,7 +41,6 @@ def discover_entities(company_name: str, api_key: str) -> list[str]:
     fetch_patents.py uses.
     """
     base_url = "https://api.uspto.gov/api/v1/patent/applications/search"
-    headers = {"X-Api-Key": api_key}
     names: list[str] = []
 
     queries = [f'assignmentBag.assigneeBag.assigneeNameText:"{company_name}"']
@@ -50,12 +49,8 @@ def discover_entities(company_name: str, api_key: str) -> list[str]:
         queries.append(f"assignmentBag.assigneeBag.assigneeNameText:{first_word}*")
 
     for query in queries:
-        params = urllib.parse.urlencode({"q": query, "limit": 10})
-        url = f"{base_url}?{params}"
-        req = urllib.request.Request(url, headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read())
+            data = odp_get_json(base_url, api_key, {"q": query, "limit": 10})
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 continue

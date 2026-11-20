@@ -12,15 +12,14 @@ Writes a JSON array to stdout or a file.
 import sys
 import json
 import time
-import urllib.request
 import argparse
+
+from odp_client import odp_get_json
 
 
 def fetch_metadata(app_number: str, api_key: str) -> dict:
     url = f"https://api.uspto.gov/api/v1/patent/applications/{app_number}/meta-data"
-    req = urllib.request.Request(url, headers={"X-Api-Key": api_key})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read())
+    data = odp_get_json(url, api_key, timeout=15)
     items = data.get("patentFileWrapperDataBag", [])
     if not items:
         return {"applicationNumberText": app_number, "error": "no data"}
@@ -58,7 +57,9 @@ def main():
     parser.add_argument("input", help="File of application numbers (one per line), or - for stdin")
     parser.add_argument("api_key", help="USPTO ODP API key")
     parser.add_argument("--output", help="Write JSON results to this file (default: stdout)")
-    parser.add_argument("--delay", type=float, default=0.1, help="Seconds between requests (default: 0.1)")
+    parser.add_argument("--delay", type=float, default=0.1,
+                        help="Extra seconds between requests (default: 0.1), added on top of the "
+                             "fixed ODP minimum spacing enforced by odp_client")
     args = parser.parse_args()
 
     if args.input == "-":

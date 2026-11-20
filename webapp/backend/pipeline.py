@@ -4,8 +4,6 @@ import queue
 import re
 import tempfile
 import threading
-import time
-import urllib.error
 import uuid
 from pathlib import Path
 
@@ -21,24 +19,17 @@ def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-def _fetch_metadata_with_retry(app_number: str, api_key: str, max_retries: int = 4) -> dict:
+def _fetch_metadata_with_retry(app_number: str, api_key: str) -> dict:
     """
-    Wraps the bare fetch_metadata() (imported unmodified from fetch_metadata.py, which
-    has no built-in retry/error handling of its own — that only lives in its CLI main())
-    with USPTO 429 backoff and a per-item error fallback, so one rate-limited or failed
-    application doesn't abort the whole run — mirrors fetch_metadata.py's own CLI
-    tolerance for per-item failures.
+    Wraps the bare fetch_metadata() with a per-item error fallback, so one failed
+    application doesn't abort the whole run (mirrors fetch_metadata.py's CLI tolerance
+    for per-item failures). Pacing, the one-request-at-a-time rule and 429 backoff are
+    handled inside odp_client, which every ODP call goes through.
     """
-    for attempt in range(max_retries + 1):
-        try:
-            return scripts_bridge.fetch_metadata(app_number, api_key)
-        except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt < max_retries:
-                time.sleep(2.0 * (2**attempt))
-                continue
-            return {"applicationNumberText": app_number, "error": str(e)}
-        except Exception as e:  # noqa: BLE001 - one bad item shouldn't abort the run
-            return {"applicationNumberText": app_number, "error": str(e)}
+    try:
+        return scripts_bridge.fetch_metadata(app_number, api_key)
+    except Exception as e:  # noqa: BLE001 - one bad item shouldn't abort the run
+        return {"applicationNumberText": app_number, "error": str(e)}
 
 
 def _lookup_categories(record: PatentRecord, assignments: dict[str, list[str]]) -> list[str]:
@@ -56,18 +47,10 @@ def _lookup_categories(record: PatentRecord, assignments: dict[str, list[str]]) 
     return []
 
 
-def _fetch_applications_with_retry(entity: str, api_key: str, keywords: list[str], max_retries: int = 4) -> list[dict]:
-    """Same 429-backoff as _fetch_metadata_with_retry, but lets SystemExit (the intentional
-    500-result cap signal) and any other exception propagate — only a transient rate limit
-    is worth retrying here."""
-    for attempt in range(max_retries + 1):
-        try:
-            return scripts_bridge.fetch_applications(entity, api_key, keywords)
-        except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt < max_retries:
-                time.sleep(2.0 * (2**attempt))
-                continue
-            raise
+def _fetch_applications_with_retry(entity: str, api_key: str, keywords: list[str]) -> list[dict]:
+    """Thin wrapper kept for call-site stability: 429 backoff now lives in odp_client.
+    SystemExit (the intentional 500-result cap signal) and other errors propagate."""
+    return scripts_bridge.fetch_applications(entity, api_key, keywords)
 
 
 def _emit(run_id: str, event: dict) -> None:
