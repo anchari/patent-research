@@ -183,6 +183,34 @@ If you re-run the workflow for the same company, all fetches repeat from scratch
 
 ---
 
+## Cost-efficiency design notes (roadmap CE-0 to CE-7)
+
+**Where tokens go today.**
+- **The skill** runs entirely on the Claude Code session model (Opus 5.5 at $4 / $20 per million input/output tokens). It reads every abstract and summary in the main conversation, so each later turn re-sends a context that keeps growing. In a ~70-filing run that context accumulation, not any single step, is the largest cost.
+- **The web app** makes one `claude-opus-5` call per patent ($5 / $25) for relevance and summary, plus calls for keywords, categorization and the report, with no prompt caching and no effort setting.
+- **Already in code:** assignee names, status labels, filing counts and claim structure, so the remaining per-item LLM volume is relevance, summaries and claim-breadth judgment.
+
+**Task tiers.**
+
+| Tier | Work | Executor |
+|---|---|---|
+| Deterministic | Claim and word counts, status labels, families from continuity data, coverage counts, inventor statistics, filing chart, CSV, report rendering | Reusable Python scripts (no LLM) |
+| Per-item extraction | Relevance filter, 2–3 sentence summaries, inventor LinkedIn lookups, later office-action summaries | Claude Haiku 5.5 ($0.10 / $0.50), low effort; Sonnet 5.5 if Haiku's quality falls short |
+| Per-item judgment | Claim-breadth rating | Claude Sonnet 5.5 ($2 / $10) |
+| Synthesis | Clusters, gaps, strategic direction, competitor contrast, narrative | Claude Opus 5.5 |
+
+**Mechanics in the skill.**
+- **Delegation:** the skill can tell Claude to hand per-item work to subagents with an explicit model and effort, in batches of roughly 20 filings. Each batch reads its inputs from files and returns compact JSON (decision, summary, category hint, counts), which the main session merges.
+- **Bulk data:** large API responses are written to files and summarized in a few lines, never printed in full.
+- **Caching:** Claude Code caches the conversation prefix automatically, so caching gains come from keeping the conversation small and stable, not from explicit cache settings.
+
+**Mechanics in the web app.**
+- Set the model and `output_config.effort` per call.
+- Mark the shared per-patent instructions with `cache_control` so repeated calls read them from cache.
+- The Batch API halves cost but returns results asynchronously, which conflicts with live progress, so use it only for unattended runs.
+
+**Quality guardrail.** Prices differ about 40× between Haiku 5.5 and Opus 5.5, but a cheaper model can miss subtle relevance calls, such as a same-name, different-company patent. Each routing change is tested against the CE-0 reference outputs on the same abstracts before adoption, and judged by cost per completed run, not per call.
+
 ## Future improvements
 
 The roadmap, backlog and unscheduled ideas live in the **Roadmap** section of [`PRD.md`](PRD.md). This document keeps only the technical design notes for roadmap items that need them.
