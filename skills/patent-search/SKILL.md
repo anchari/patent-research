@@ -8,7 +8,11 @@ The user wants to research the patent portfolio for a specific company and subje
 
 $ARGUMENTS
 
-Parse the arguments to identify:
+If the line above is empty or still reads literally as a `$ARGUMENTS` placeholder (agents that don't substitute arguments), take the request from the user's message instead. Accept either the `company | subject | competitors` form or plain language ("Waymo's wireless patents, compared with Tesla"). If the company or subject is missing, ask before doing anything else.
+
+**Paths.** This skill lives in `skills/patent-search/` inside the patent-research repo, usually symlinked into the agent's skills folder. Resolve the symlink to find the repo root (two levels above this file). The scripts and `odp_client.py` live there: run them from the repo root, or by absolute path, regardless of the current working directory. `assets/` (next to this file) holds the report annotation layer.
+
+Parse the request to identify:
 - **Company name**: the exact legal name or common name used in USPTO records (e.g., "Apple Inc", "3M Company", "International Business Machines")
 - **Subject area**: the technology or topic to search within (e.g., "noise cancellation", "battery technology", "large language models")
 - **Competitors** (optional, third `|`-separated field, comma-separated): companies whose portfolios to compare against in the same subject area.
@@ -449,7 +453,14 @@ The HTML file must be fully self-contained (no external stylesheets or scripts).
 
 Render all Markdown formatting as equivalent HTML elements (`#` → `<h1>`, `**text**` → `<strong>`, `> text` → `<blockquote>`, etc.).
 
-**Annotation layer:** make the HTML report annotatable per the `annotate-html` skill (Part 1) — inline `~/.claude/skills/annotate-html/assets/annotate.css` and `annotate.js` plus the empty `annotations-data` block before `</body>`. The user can then highlight passages, leave comments (saved to a sidecar `{report}.annotations.json`), and later ask you to respond to them inline (the `annotate-html` skill's Part 2 workflow).
+**Annotation layer:** make the HTML report annotatable by inserting, just before `</body>`:
+1. a `<style>` block with the contents of `assets/annotate.css` (in this skill's folder)
+2. an empty store, where `{basename}` is the HTML filename without its extension: `<script type="application/json" id="annotations-data">{"version":1,"doc":"{basename}","annotations":[],"deleted":[]}</script>`
+3. a `<script>` block with the contents of `assets/annotate.js`, after any other scripts
+
+Inline the file contents so the report stays self-contained, and don't modify the asset files. The reader can then highlight passages and leave comments, which save to a sidecar `{basename}.annotations.json` next to the HTML.
+
+**Responding to comments (later, when asked):** read the sidecar. For each annotation whose latest turn is the user's, answer it properly and append `{"id":"r-<unique>","author":"claude","text":"...","createdAt":"<ISO timestamp>"}` to its `replies`. Never edit or delete the user's entries, and respect the `deleted` list. Write the JSON back to the sidecar and into the HTML's `annotations-data` block. If a comment shows the report is wrong, fix both the HTML and the Markdown report and say so in the reply.
 
 ---
 

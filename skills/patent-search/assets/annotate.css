@@ -1,0 +1,51 @@
+/* Annotation layer — inlined into memo HTML alongside annotate.js */
+mark.ann { background: rgba(250, 210, 50, 0.45); color: inherit; border-radius: 2px;
+           padding: 0 1px; cursor: pointer; }
+mark.ann.has-note { border-bottom: 2px dotted rgba(180, 130, 0, 0.9); }
+mark.ann mark.ann { background: rgba(250, 190, 30, 0.55); }
+@media (prefers-color-scheme: dark) {
+  mark.ann { background: rgba(250, 210, 50, 0.28); }
+  mark.ann mark.ann { background: rgba(250, 210, 50, 0.42); }
+}
+.ann-flag { display: inline-block; font-size: 0.72em; vertical-align: super;
+            color: var(--series-1, #2a78d6); cursor: pointer; user-select: none;
+            font-family: system-ui, sans-serif; margin-left: 2px; }
+#ann-toolbar { position: absolute; z-index: 40; display: none; gap: 4px;
+               background: var(--ink-1, #0b0b0b); border-radius: 6px; padding: 4px;
+               font-family: system-ui, sans-serif; font-size: 12.5px;
+               box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+#ann-toolbar button { background: none; border: none; color: var(--page, #f9f9f7);
+               padding: 4px 9px; cursor: pointer; border-radius: 4px; font-size: 12.5px; }
+#ann-toolbar button:hover { background: rgba(255,255,255,0.18); }
+#ann-panel { position: absolute; z-index: 41; display: none; width: min(340px, 86vw);
+             background: var(--surface-1, #fcfcfb); border: 1px solid var(--border, rgba(0,0,0,0.12));
+             border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+             font-family: system-ui, sans-serif; font-size: 13px; padding: 12px;
+             color: var(--ink-1, #0b0b0b); }
+#ann-panel .ann-quote { font-style: italic; color: var(--ink-2, #52514e);
+             border-left: 3px solid var(--baseline, #c3c2b7); padding-left: 8px;
+             margin: 0 0 8px; max-height: 60px; overflow: hidden; }
+#ann-panel textarea { width: 100%; box-sizing: border-box; min-height: 52px; resize: vertical;
+             font: 13px system-ui, sans-serif; padding: 6px; border-radius: 5px;
+             border: 1px solid var(--grid, #e1e0d9); background: var(--page, #f9f9f7);
+             color: var(--ink-1, #0b0b0b); }
+#ann-panel .ann-row { display: flex; justify-content: space-between; align-items: center;
+             margin-top: 8px; gap: 6px; }
+#ann-panel button { font: 12.5px system-ui, sans-serif; padding: 4px 10px; cursor: pointer;
+             border-radius: 5px; border: 1px solid var(--grid, #e1e0d9);
+             background: var(--page, #f9f9f7); color: var(--ink-1, #0b0b0b); }
+#ann-panel button.primary { background: var(--series-1, #2a78d6); color: #fff; border-color: transparent; }
+#ann-panel button.danger { color: var(--series-neg, #e34948); }
+.ann-reply { margin: 8px 0 0; padding: 7px 9px; border-radius: 6px;
+             background: var(--page, #f9f9f7); border: 1px solid var(--grid, #e1e0d9); }
+.ann-reply.claude { border-left: 3px solid var(--series-1, #2a78d6); }
+.ann-reply .ann-meta { font-size: 11px; color: var(--ink-muted, #898781); margin-bottom: 3px; }
+#ann-bar { position: fixed; top: 10px; right: 12px; z-index: 39;
+           font-family: system-ui, sans-serif; font-size: 12px;
+           background: var(--surface-1, #fcfcfb); border: 1px solid var(--border, rgba(0,0,0,0.12));
+           border-radius: 999px; padding: 5px 6px 5px 12px; display: flex; align-items: center;
+           gap: 6px; color: var(--ink-2, #52514e); box-shadow: 0 1px 6px rgba(0,0,0,0.10); }
+#ann-bar button { font: 12px system-ui, sans-serif; padding: 3px 10px; cursor: pointer;
+           border-radius: 999px; border: 1px solid var(--grid, #e1e0d9);
+           background: var(--page, #f9f9f7); color: var(--ink-1, #0b0b0b); }
+#ann-bar .dirty { color: var(--series-neg, #e34948); font-weight: 600; }

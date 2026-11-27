@@ -77,7 +77,12 @@ The workflow is multi-step and interactive. Two confirmation checkpoints happen 
 | `fetch_abstracts.py` | Fetch abstract text for each issued patent from Google Patents | CLI: `metadata.json` → `abstracts.json` |
 | `odp_client.py` | Shared, rate-limited ODP access (`odp_get`, `odp_get_json`) used by the scripts, the web app and the skill's ad hoc calls | Library: URL + API key (+ params) → response body / JSON |
 
-### Claude skill (`~/.claude/skills/patent-search/`)
+### Agent skill (`skills/patent-search/`)
+
+The skill lives in the repo and is symlinked into the agent's skills folder (`~/.claude/skills/` for Claude Code, `~/.agents/skills/` for Codex and Gemini CLI). It follows the Agent Skills `SKILL.md` format. Portability rules:
+- `$ARGUMENTS` (Claude Code's slash-command input) is optional: without it, the skill reads the request from the user's message.
+- The skill finds the repo root by resolving its own symlink, so it doesn't depend on the working directory.
+- The report annotation assets (`assets/annotate.css`, `assets/annotate.js`) ship with the skill, so there's no dependency on other skills or paths outside the repo.
 
 The skill (`SKILL.md`) drives the interactive workflow. It orchestrates the steps above, calls the scripts via Bash, handles the two confirmation checkpoints, generates summaries and categories, and writes the final CSV. The scripts are the mechanical data-fetch layer; Claude handles all judgment — entity disambiguation, search term quality, relevance filtering, summarization, and categorization.
 

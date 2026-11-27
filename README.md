@@ -56,10 +56,14 @@ The workflow is driven by a **Claude Code skill** (`/patent-search`) that handle
 
 ### Prerequisites
 
-- **Claude Code** with the `patent-search` skill. The skill lives in `skills/patent-search/` in this repo — symlink it into place on first clone:
+- **An agent that supports Agent Skills (`SKILL.md`)**: built and tested with Claude Code; untested with OpenAI Codex and Gemini CLI. The skill lives in `skills/patent-search/` in this repo. From the repo root, symlink it into your agent's skills folder on first clone:
   ```bash
+  # Claude Code
   ln -s "$(pwd)/skills/patent-search" ~/.claude/skills/patent-search
+  # Codex or Gemini CLI (both read ~/.agents/skills)
+  mkdir -p ~/.agents/skills && ln -s "$(pwd)/skills/patent-search" ~/.agents/skills/patent-search
   ```
+  Use a symlink, not a copy: the skill finds the repo's scripts by resolving its own location.
 - **USPTO ODP API key** — free, get one at [data.uspto.gov](https://data.uspto.gov/apis/getting-started)
 - **Python 3.9+** for the fetch scripts
 - A `.env` file at the repo root holding `USPTO_API_KEY=...` (and, if you're using the web app below, `ANTHROPIC_API_KEY=...` too). Copy `.env.example` to `.env` and fill it in — it's gitignored. To use the key on the command line, `set -a && source .env && set +a`, then reference it as `$USPTO_API_KEY` in the examples below.
@@ -70,6 +74,8 @@ In Claude Code, run:
 ```
 /patent-search [company name] | [subject area] | [optional competitors, comma-separated]
 ```
+
+In other agents, ask in plain language, for example "Use the patent-search skill to analyze Waymo LLC's wireless communications patents".
 
 Examples:
 ```

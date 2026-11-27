@@ -1,6 +1,6 @@
 # patent-search
 
-A Claude Code skill that researches US patents and patent applications for a company in a given subject area, summarizes each one in plain English, groups them into logical categories, and exports the results to a CSV.
+An agent skill (built for Claude Code; adaptable to Codex, Gemini CLI and other agents that read `SKILL.md`) that researches US patents and patent applications for a company in a given subject area, summarizes each one in plain English, groups them into logical categories, and exports the results to a CSV.
 
 ## Usage
 
@@ -14,6 +14,8 @@ A Claude Code skill that researches US patents and patent applications for a com
 /patent-search 3M Company | noise cancellation
 /patent-search International Business Machines | quantum computing
 ```
+
+In agents without slash-command arguments, ask in plain language, e.g. "Use the patent-search skill to analyze Meta Platforms' augmented reality patents". Install steps for each agent are in the repo's main `README.md`.
 
 ## Prerequisites
 
